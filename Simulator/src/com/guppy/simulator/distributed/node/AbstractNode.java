@@ -5,19 +5,20 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
+import com.guppy.simulator.common.typdef.NodeId;
 
 /*
  * 
  */
 public abstract class AbstractNode implements INode {
 
-	protected String nodeId;
+	protected NodeId nodeId;
 
-	private boolean isLeader = false;
+	protected boolean isLeader = false;
 
-	private BlockingQueue<IMessage> messageQueue = null;
+	protected BlockingQueue<IMessage> messageQueue = null;
 
-	private IBroadcastStrategy strategy;
+	protected IBroadcastStrategy strategy;
 	
 	/*
 	 * 
@@ -25,13 +26,16 @@ public abstract class AbstractNode implements INode {
 	protected AbstractNode(IBroadcastStrategy _strategy) {
 		
 		this.nodeId = generateNodeId();
+		_strategy.setNodeId(this.nodeId);
 		this.strategy = _strategy;
 		messageQueue = new LinkedBlockingQueue<IMessage>();
 
 	}
 
-	protected abstract String generateNodeId();
+	protected abstract NodeId generateNodeId();
 	
 	public abstract BlockingQueue<IMessage> getMessageQueue();
+	
+	public abstract void setLeader(boolean isLeader);
 
 }

@@ -28,7 +28,7 @@ public abstract class AbstractMessageModel implements IMessage {
 
 	protected LocalDateTime timeStamp;
 	
-	protected NodeId SenderId;
+	protected NodeId senderId;
 
 	/**
 	 * Constructor for creating an instance of AbstractMessageModel.

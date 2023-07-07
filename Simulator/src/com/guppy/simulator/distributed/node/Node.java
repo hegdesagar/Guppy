@@ -14,15 +14,7 @@ import com.guppy.simulator.common.typdef.NodeId;
  * @author HegdeSagar
  *
  */
-public class Node extends AbstractNode implements Runnable {
-
-	protected NodeId nodeId;
-
-	private boolean isLeader = false;
-
-	private BlockingQueue<IMessage> messageQueue = null;
-
-	private IBroadcastStrategy strategy;
+public class Node extends AbstractNode {
 
 	/*
 	 * Constructor for node initialization
@@ -63,13 +55,13 @@ public class Node extends AbstractNode implements Runnable {
 		return messageQueue;
 	}
 
-	protected String generateNodeId() {
+	protected NodeId generateNodeId() {
 		
 		AtomicLong idCounter = new AtomicLong();
 
 		String idVal = String.valueOf(idCounter.getAndIncrement());
 
-		return new String(Constants.NODE_ID_PREFIX.concat(idVal));
+		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
 
 	}
 

@@ -9,6 +9,7 @@ import com.guppy.simulator.broadcast.message.Message;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
+import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
 
 public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
@@ -22,8 +23,7 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 	// TODO is concurrentHashMap really required here?
 	private List<IMessage> echoMessages = new LinkedList<IMessage>();
 
-	public AuthenticatedEchoBroadcastStrategy(NodeId _nodeId, int _N, int _f) {
-		this.nodeId = _nodeId;
+	public AuthenticatedEchoBroadcastStrategy(int _N, int _f) {
 		this.N = _N;
 		this.f = _f;
 		sentEcho = false;
@@ -49,7 +49,7 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 				echoMessages.add(echoMessage);
 				broadcastMessage(echoMessage);
 			}
-		} else if (MessageType.ECHO.equals(message.getType()) && !echoMessages.containsKey(message.getSenderId())) {
+		} else if (MessageType.ECHO.equals(message.getType()) && !isAlreadyEchoed(message)) {
 			echoMessages.add(message);
 		}
 		int echoCount = getEchoCount(message);
@@ -58,13 +58,26 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 			deliver(message);
 		}
 	}
+
+	/**
+	 * @param message
+	 */
+	private boolean isAlreadyEchoed(IMessage message) {
+		NodeId senderId = message.getSenderId();
+		for(IMessage msg: echoMessages) {
+			if(msg.getSenderId().equals(senderId)) {
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	@Override
 	public void broadcastMessage(IMessage message) {
 		// Create a new ECHO message with the same content as the original message
 		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
 
-		for (INode node : Simulator.getInstance().getNodes()) {
+		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			BlockingQueue<IMessage> queue = node.getMessageQueue();
 			try {
 				queue.put(echoMessage);
@@ -95,8 +108,8 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 		// Create a new SEND message with the given content
 		Message sendMessage = new Message(nodeId, content, MessageType.SEND);
 		// Broadcast the SEND message to all other nodes
-		System.out.println("Number of nodes are :"+Simulator.getInstance().getNoOfNodes());
-		for (INode node : Simulator.getInstance().getNodes()) {
+		System.out.println("Number of nodes are :"+NetworkSimulator.getInstance().getNodes());
+		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			BlockingQueue<IMessage> queue = node.getMessageQueue();
 			try {
 				queue.put(sendMessage);
@@ -106,6 +119,16 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 			}
 		}
 
+	}
+	
+	@Override
+	public NodeId getNodeId() {
+		return nodeId;
+	}
+	
+	@Override
+	public void setNodeId(NodeId nodeId) {
+		this.nodeId = nodeId;
 	}
 
 }

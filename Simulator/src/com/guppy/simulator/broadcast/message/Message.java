@@ -17,7 +17,7 @@ public class Message extends AbstractMessageModel {
 
 	public Message(NodeId nodeId, MessageContent msgContent, MessageType messageType) {
 		super(msgContent, messageType);
-		this.SenderId = nodeId;
+		this.senderId = nodeId;
 	}
 
 	/**
@@ -37,7 +37,7 @@ public class Message extends AbstractMessageModel {
 
 	@Override
 	public NodeId getSenderId() {
-		return this.getSenderId();
+		return this.senderId;
 	}
 
 	@Override
