@@ -1,11 +1,11 @@
-package com.guppy.simulator.broadcast.message;
+package com.guppy.simulator.broadcast.message.data;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
-import com.guppy.simulator.common.Constants;
+import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.MessageId;
+import com.guppy.simulator.common.typdef.NodeId;
 
 /**
  * 
@@ -16,7 +16,7 @@ import com.guppy.simulator.common.typdef.MessageId;
  */
 public abstract class AbstractMessageModel implements IMessage {
 
-	protected enum MessageType {
+	public enum MessageType {
 		SEND, ECHO
 	};
 
@@ -27,6 +27,8 @@ public abstract class AbstractMessageModel implements IMessage {
 	protected MessageType type;
 
 	protected LocalDateTime timeStamp;
+	
+	protected NodeId SenderId;
 
 	/**
 	 * Constructor for creating an instance of AbstractMessageModel.
@@ -46,21 +48,17 @@ public abstract class AbstractMessageModel implements IMessage {
 		this.type = messageType;
 
 	}
-
-	/**
-	 * Generates a unique message ID.
-	 * 
-	 * @return the generated message ID
-	 */
-	protected MessageId generateMessageId() {
-
-		AtomicLong idCounter = new AtomicLong();
-
-		String idVal = String.valueOf(idCounter.getAndIncrement());
-
-		return new MessageId(Constants.MESSAGE_ID_PREFIX.concat(idVal));
-
+	
+	public MessageType getType() {
+		return this.type;
 	}
+	
 
+	public abstract MessageContent getContent();
+	
+	protected abstract MessageId generateMessageId();
+	
+	public abstract NodeId getSenderId();
+		
 
 }

@@ -1,9 +1,15 @@
 package com.guppy.simulator.broadcast.strategy;
 
-import java.util.Map;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
 import com.guppy.simulator.broadcast.message.IMessage;
+import com.guppy.simulator.broadcast.message.Message;
+import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
+import com.guppy.simulator.common.typdef.MessageContent;
+import com.guppy.simulator.common.typdef.NodeId;
+import com.guppy.simulator.distributed.node.INode;
 
 public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 
@@ -11,12 +17,12 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 	private boolean delivered;
 	private int N; // Number of nodes
 	private int f; // Maximum number of faulty nodes
-	private String nodeId;
+	private NodeId nodeId;
 
 	// TODO is concurrentHashMap really required here?
-	private Map<String, IMessage> echoMessages = new HasMap<String, IMessage>();
+	private List<IMessage> echoMessages = new LinkedList<IMessage>();
 
-	public AuthenticatedEchoBroadcastStrategy(String _nodeId, int _N, int _f) {
+	public AuthenticatedEchoBroadcastStrategy(NodeId _nodeId, int _N, int _f) {
 		this.nodeId = _nodeId;
 		this.N = _N;
 		this.f = _f;
@@ -33,18 +39,18 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 				sentEcho = true;
 				// Add the sender's own echo message in the echoMessages map
 				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
-				echoMessages.put(nodeId, echoMessage);
+				echoMessages.add(echoMessage);
 				// Broadcast the original SEND message
 				broadcastMessage(message);
 			} else {
 				// If this node is not the sender of the SEND message
 				// Create a new ECHO message and broadcast it
 				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
-				echoMessages.put(nodeId, echoMessage);
+				echoMessages.add(echoMessage);
 				broadcastMessage(echoMessage);
 			}
 		} else if (MessageType.ECHO.equals(message.getType()) && !echoMessages.containsKey(message.getSenderId())) {
-			echoMessages.put(message.getSenderId(), message);
+			echoMessages.add(message);
 		}
 		int echoCount = getEchoCount(message);
 		if (echoCount > (N - f) / 2 && !delivered) {
@@ -76,7 +82,7 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 	
 	public int getEchoCount(IMessage message) {
 	    int count = 0;
-	    for (IMessage echoMessage : echoMessages.values()) {
+	    for (IMessage echoMessage : echoMessages) {
 	        if (echoMessage.getContent().equals(message.getContent())) {
 	            count++;
 	        }
@@ -85,7 +91,7 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 	}
 	
 	@Override
-	public void leaderBroadcast(String content) {
+	public void leaderBroadcast(MessageContent content) {
 		// Create a new SEND message with the given content
 		Message sendMessage = new Message(nodeId, content, MessageType.SEND);
 		// Broadcast the SEND message to all other nodes

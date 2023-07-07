@@ -1,15 +1,15 @@
 package com.guppy.simulator.broadcast.strategy;
 
 import com.guppy.simulator.broadcast.message.IMessage;
+import com.guppy.simulator.common.typdef.MessageContent;
 
 public interface IBroadcastStrategy {
 	
-	public void executeStrategy(IMessage message);
+	void executeStrategy(IMessage message);
 
 	void broadcastMessage(IMessage message);
 
-	public void leaderBroadcast(String string);
-	
+	void leaderBroadcast(MessageContent content);
 	
 
 }
