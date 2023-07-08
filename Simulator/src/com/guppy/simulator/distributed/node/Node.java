@@ -16,6 +16,8 @@ import com.guppy.simulator.common.typdef.NodeId;
  */
 public class Node extends AbstractNode {
 
+	private static final AtomicLong idCounter = new AtomicLong();
+
 	/*
 	 * Constructor for node initialization
 	 */
@@ -48,21 +50,32 @@ public class Node extends AbstractNode {
 	public void setLeader(boolean isLeader) {
 		System.out.println("Node :" + nodeId + " is elected as leader!!!....");
 		this.isLeader = isLeader;
-		strategy.leaderBroadcast(new MessageContent("Hello World!!")); //TODO this needs to be better
+		strategy.leaderBroadcast(new MessageContent("Hello World!!")); // TODO this needs to be better
 	}
 
 	public BlockingQueue<IMessage> getMessageQueue() {
 		return messageQueue;
 	}
 
-	protected NodeId generateNodeId() {
-		
-		AtomicLong idCounter = new AtomicLong();
-
+	protected synchronized NodeId generateNodeId() {
 		String idVal = String.valueOf(idCounter.getAndIncrement());
-
 		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
+	}
 
+	@Override
+	public void injectFault() {
+		boolean flag = true;
+		synchronized (this) {
+			try {
+				while (flag) {
+					this.wait();
+				}
+			} catch (InterruptedException e) {
+				// Handle the exception
+				System.out.println("Interrupted exeception...");
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 }

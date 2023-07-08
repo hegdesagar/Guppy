@@ -37,5 +37,7 @@ public abstract class AbstractNode implements INode {
 	public abstract BlockingQueue<IMessage> getMessageQueue();
 	
 	public abstract void setLeader(boolean isLeader);
+	
+	public abstract void injectFault();
 
 }

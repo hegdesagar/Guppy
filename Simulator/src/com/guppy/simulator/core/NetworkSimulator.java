@@ -31,13 +31,23 @@ public class NetworkSimulator {
 
 	public void simulateNetwork(int noOfNodes) {
 		for (int i = 0; i < noOfNodes; i++) {
-			Node node = new Node(new AuthenticatedEchoBroadcastStrategy(noOfNodes, 1));// TODO faults needs to be
-																								// calculated
+			// TODO faults needs to be calculated
+			Node node = new Node(new AuthenticatedEchoBroadcastStrategy(noOfNodes, 2));
 			nodeList.add(node);
+
+		}
+
+	}
+
+	public void startSimulation() {
+		for (INode node : nodeList) {
 			Thread thread = new Thread(node);
 			thread.start();
 		}
+	}
 
+	public void electLeader() {
+		// TODO elect a legitimate leader
 		nodeList.get(0).setLeader(true);
 	}
 
