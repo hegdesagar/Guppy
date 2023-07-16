@@ -15,7 +15,7 @@ public class NetworkSimulatorTest {
 		//simulator.getInstance().getNodes().get(1).injectFault();
 		//simulator.getInstance().getNodes().get(2).injectFault();
 		//simulator.getInstance().getNodes().get(3).injectFault();
-		simulator.getInstance().getNodes().get(4).injectFault();
+		//simulator.getInstance().getNodes().get(4).injectFault();
 		
 		simulator.electLeader();
 		

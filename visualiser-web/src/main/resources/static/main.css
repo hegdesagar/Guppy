@@ -1,0 +1,30 @@
+/*body {
+    background-color: #f5f5f5;
+}*/
+
+#main-content {
+    max-width: 940px;
+    padding: 2em 3em;
+    margin: 0 auto 20px;
+    background-color: #fff;
+    border: 1px solid #e5e5e5;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+/*  CRYPTO SCAPE STYPEL -- START*/
+body { 
+  font: 14px helvetica neue, helvetica, arial, sans-serif;
+}
+
+#cy {
+  height: 50%;
+  width: 50%;
+  position: absolute;
+  left: 0;
+  top: 100px;  /* TODO   Change this */
+  background-color: pink;
+}
+
+/*  CRYPTO SCAPE STYPEL -- END*/

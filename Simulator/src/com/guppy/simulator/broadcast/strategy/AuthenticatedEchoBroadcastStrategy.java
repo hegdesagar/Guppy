@@ -12,6 +12,11 @@ import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
 
+/**
+ * 
+ * @author SagarHegde
+ *
+ */
 public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 
 	private boolean sentEcho;
@@ -111,7 +116,7 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 		// Create a new SEND message with the given content
 		Message sendMessage = new Message(nodeId, content, MessageType.SEND);
 		// Broadcast the SEND message to all other nodes
-		System.out.println("Number of nodes are :"+NetworkSimulator.getInstance().getNodes());
+		System.out.println("Number of nodes are :"+NetworkSimulator.getInstance().getNodes().size());
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			BlockingQueue<IMessage> queue = node.getMessageQueue();
 			try {

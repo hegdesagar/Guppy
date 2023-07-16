@@ -32,7 +32,7 @@ public class NetworkSimulator {
 	public void simulateNetwork(int noOfNodes) {
 		for (int i = 0; i < noOfNodes; i++) {
 			// TODO faults needs to be calculated
-			Node node = new Node(new AuthenticatedEchoBroadcastStrategy(noOfNodes, 2));
+			Node node = new Node(new AuthenticatedEchoBroadcastStrategy(noOfNodes, 1));
 			nodeList.add(node);
 
 		}
