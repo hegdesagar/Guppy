@@ -1,0 +1,143 @@
+@charset "UTF-8";
+/*html {
+  background-color: #E4E9FD;
+  background-image: -webkit-linear-gradient(65deg, #A683E3 50%, #E4E9FD 50%);
+  min-height: 1000px;
+  font-family: 'helvetica neue';
+}*/
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #A683E3;
+}
+
+main {
+  flex: 1;
+  padding: 20px;
+}
+
+h1 {
+  color: #fff;
+  padding: 10px;
+}
+
+.box {
+  max-width: 400px;
+  margin: 50px auto;
+  background: white;
+  border-radius: 5px;
+  box-shadow: 5px 5px 15px -5px rgba(0, 0, 0, 0.3);
+}
+
+#heading {
+  background-color: #A683E3;
+  text-align: center;
+}
+
+.item {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #F1F1F1;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+input:checked+p {
+  text-decoration: line-through;
+  text-decoration-color: #A683E3;
+}
+
+input[type="checkbox"] {
+  margin: 20px;
+}
+
+p {
+  margin: 0;
+  padding: 20px;
+  font-size: 20px;
+  font-weight: 200;
+  color: #00204a;
+}
+
+/* Make the row flex container to allow columns to take full height */
+.container .row {
+    display: flex;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* Make each card a flex container, too, to allow content to be centered */
+.card_middle {
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Optional, if you want to center content vertically */
+    height: 500px; /* Set the height of the card */
+    width: 100%; /* Set the width of the card */
+}
+
+/* Set min-height instead of height to ensure all content is shown */
+#cy {
+    height: 100%; /* The graph will take up 100% of the height of its parent */
+    width: 100%; /* The graph will take up 100% of the width of its parent */
+    overflow: auto;
+}
+
+/* Set min-height instead of height to ensure all content is shown */
+.card_middle {
+    min-height: 50vh; /* or the value that fits your design */
+    overflow: auto;
+    
+}
+
+
+/*form {
+  text-align: center;
+  margin-left: 20px;
+}*/
+
+/*button {
+  min-height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  border-color: transparent;
+  background-color: #A683E3;
+  color: #fff;
+  font-size: 30px;
+  padding-bottom: 6px;
+  border-width: 0;
+}*/
+
+/*input[type="text"] {
+  text-align: center;
+  height: 60px;
+  top: 10px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 200;
+  width: 313px;
+}*/
+
+/*input[type="text"]:focus {
+  outline: none;
+  box-shadow: inset 0 -3px 0 0 #A683E3;
+}*/
+
+::placeholder {
+  color: grey;
+  opacity: 1;
+}
+header {
+	background-color: #146C94;
+}
+footer {
+  color: white;
+  color: rgba(0, 0, 0, 0.5);
+  text-align: center;
+  background-color: #146C94;
+}

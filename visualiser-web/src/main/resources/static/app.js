@@ -7,6 +7,7 @@ const stompClient = new StompJs.Client({
 stompClient.onConnect = (frame) => {
 	setConnected(true);
 	console.log('Connected: ' + frame);
+	sendName();
 	stompClient.subscribe('/topic/simulate_data', (greeting) => {
 		console.log(greeting.body);
 		const receivedData = JSON.parse(greeting.body); // parse the incoming data
