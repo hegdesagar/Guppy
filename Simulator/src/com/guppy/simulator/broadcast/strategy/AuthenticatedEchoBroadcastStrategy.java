@@ -11,6 +11,7 @@ import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
+import com.guppy.simulator.rabbitmq.service.RabbitMQService;
 
 /**
  * 
@@ -24,20 +25,22 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 	private int N; // Number of nodes
 	private int f; // Maximum number of faulty nodes
 	private NodeId nodeId;
+	private RabbitMQService rabbitMQService;
 
 	// TODO is concurrentHashMap really required here?
 	private List<IMessage> echoMessages = new LinkedList<IMessage>();
 
-	public AuthenticatedEchoBroadcastStrategy(int _N, int _f) {
+	public AuthenticatedEchoBroadcastStrategy(int _N, int _f) throws Exception {
 		this.N = _N;
 		this.f = _f;
 		sentEcho = false;
 		delivered = false;
+		rabbitMQService = new RabbitMQService("your-exchange-name");
 
 	}
 
 	@Override
-	public void executeStrategy(IMessage message) {
+	public void executeStrategy(IMessage message) throws Exception {
 		if (MessageType.SEND.equals(message.getType())) {
 			//System.out.println("SEND : nodeId : "+message.getSenderId());
 			if (message.getSenderId().equals(nodeId) && !sentEcho) {
@@ -55,15 +58,19 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 				echoMessages.add(echoMessage);
 				broadcastMessage(echoMessage);
 			}
+			rabbitMQService.publishMessage(message);
 		} else if (MessageType.ECHO.equals(message.getType()) && !isAlreadyEchoed(message)) {
 			//System.out.println("ECHO : nodeId : "+message.getSenderId());
 			echoMessages.add(message);
+			rabbitMQService.publishMessage(message);
 		}
 		int echoCount = getEchoCount(message);
 		if (echoCount > (N - f) / 2 && !delivered && message.getSenderId().equals(nodeId)) {
 			//System.out.println("DELIVER : nodeId : "+message.getSenderId());
 			delivered = true;
 			deliver(message);
+			message.setType(MessageType.DELIVERED); //Change the type of the message to delivered.
+			rabbitMQService.publishMessage(message);
 		}
 	}
 

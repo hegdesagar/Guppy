@@ -6,7 +6,7 @@ import com.guppy.simulator.common.typdef.NodeId;
 
 public interface IBroadcastStrategy {
 
-	void executeStrategy(IMessage message);
+	void executeStrategy(IMessage message) throws Exception;
 
 	void broadcastMessage(IMessage message);
 

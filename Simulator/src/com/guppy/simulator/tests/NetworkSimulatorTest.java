@@ -6,7 +6,13 @@ public class NetworkSimulatorTest {
 
 	public static void main(String[] args) {
 		NetworkSimulator simulator = NetworkSimulator.getInstance();
-		simulator.simulateNetwork(5); // simulate a network with 5 nodes
+		try {
+			simulator.simulateNetwork(5);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			System.out.println("Some Error Occured");
+			e.printStackTrace();
+		} // simulate a network with 5 nodes
 		
 		//Start the simulation
 		simulator.startSimulation();

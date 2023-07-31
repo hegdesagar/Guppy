@@ -29,7 +29,7 @@ public class NetworkSimulator {
 		return nodeList;
 	}
 
-	public void simulateNetwork(int noOfNodes) {
+	public void simulateNetwork(int noOfNodes) throws Exception {
 		for (int i = 0; i < noOfNodes; i++) {
 			// TODO faults needs to be calculated
 			Node node = new Node(new AuthenticatedEchoBroadcastStrategy(noOfNodes, 1));
