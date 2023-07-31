@@ -34,7 +34,7 @@ public class Node extends AbstractNode {
 				IMessage message = messageQueue.take();
 				strategy.executeStrategy(message);
 
-			} catch (InterruptedException e) {
+			} catch (Exception e) {
 				Thread.currentThread().interrupt();
 				// TODO Handle the exception...
 				System.out.println("Thred Interuppted Exception");

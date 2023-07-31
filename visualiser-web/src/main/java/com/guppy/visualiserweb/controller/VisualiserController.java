@@ -33,6 +33,8 @@ public class VisualiserController {
         String implementation = options.getImplementation(); // Accessing the implementation
         int timeline = options.getTimeline(); // Accessing the timeline
 
+        
+        //TODO remove these after testing
         System.out.println("Nodes: " + nodes);
         System.out.println("Implementation: " + implementation);
         System.out.println("Timeline: " + timeline);
@@ -44,7 +46,7 @@ public class VisualiserController {
 
         while (true) {
             populateGraph();
-            Thread.sleep(1000); // simulated delay
+            Thread.sleep(1000); // simulated delay of 1s
             // Sending the data whenever the NetworkGraph object changes
             template.convertAndSend("/topic/simulate_data", graph);
         }

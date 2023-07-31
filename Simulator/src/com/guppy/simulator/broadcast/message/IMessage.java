@@ -7,6 +7,8 @@ import com.guppy.simulator.common.typdef.NodeId;
 public interface IMessage {
 
 	public MessageType getType();
+	
+	public void setType(MessageType type);
 
 	public NodeId getSenderId();
 	

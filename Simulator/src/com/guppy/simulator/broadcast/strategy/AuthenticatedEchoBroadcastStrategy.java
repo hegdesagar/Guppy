@@ -4,13 +4,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
+import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.broadcast.message.Message;
+import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.EventType;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
+import com.guppy.simulator.rabbitmq.service.RabbitMQService;
 
 /**
  * 
@@ -24,20 +27,22 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 	private int N; // Number of nodes
 	private int f; // Maximum number of faulty nodes
 	private NodeId nodeId;
+	private RabbitMQService rabbitMQService;
 
 	// TODO is concurrentHashMap really required here?
 	private List<IMessage> echoMessages = new LinkedList<IMessage>();
 
-	public AuthenticatedEchoBroadcastStrategy(int _N, int _f) {
+	public AuthenticatedEchoBroadcastStrategy(int _N, int _f) throws Exception {
 		this.N = _N;
 		this.f = _f;
 		sentEcho = false;
 		delivered = false;
+		rabbitMQService = new RabbitMQService("your-exchange-name");
 
 	}
 
 	@Override
-	public void executeStrategy(IMessage message) {
+	public void executeStrategy(IMessage message) throws Exception {
 		if (MessageType.SEND.equals(message.getType())) {
 			//System.out.println("SEND : nodeId : "+message.getSenderId());
 			if (message.getSenderId().equals(nodeId) && !sentEcho) {
@@ -55,15 +60,35 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 				echoMessages.add(echoMessage);
 				broadcastMessage(echoMessage);
 			}
+<<<<<<< HEAD
+			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.SEND);
+			rabbitMQService.publishMessage(event);
+=======
+			rabbitMQService.publishMessage(message);
+>>>>>>> branch 'master' of https://github.com/hegdesagar/Guppy.git
 		} else if (MessageType.ECHO.equals(message.getType()) && !isAlreadyEchoed(message)) {
 			//System.out.println("ECHO : nodeId : "+message.getSenderId());
 			echoMessages.add(message);
+<<<<<<< HEAD
+			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.ECHO);
+			rabbitMQService.publishMessage(event);
+=======
+			rabbitMQService.publishMessage(message);
+>>>>>>> branch 'master' of https://github.com/hegdesagar/Guppy.git
 		}
 		int echoCount = getEchoCount(message);
 		if (echoCount > (N - f) / 2 && !delivered && message.getSenderId().equals(nodeId)) {
 			//System.out.println("DELIVER : nodeId : "+message.getSenderId());
 			delivered = true;
 			deliver(message);
+<<<<<<< HEAD
+			//message.setType(MessageType.DELIVERED); //Change the type of the message to delivered.
+			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.DELIVERED);
+			rabbitMQService.publishMessage(event);
+=======
+			message.setType(MessageType.DELIVERED); //Change the type of the message to delivered.
+			rabbitMQService.publishMessage(message);
+>>>>>>> branch 'master' of https://github.com/hegdesagar/Guppy.git
 		}
 	}
 
