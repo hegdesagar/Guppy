@@ -60,35 +60,26 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 				echoMessages.add(echoMessage);
 				broadcastMessage(echoMessage);
 			}
-<<<<<<< HEAD
+
 			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.SEND);
 			rabbitMQService.publishMessage(event);
-=======
-			rabbitMQService.publishMessage(message);
->>>>>>> branch 'master' of https://github.com/hegdesagar/Guppy.git
 		} else if (MessageType.ECHO.equals(message.getType()) && !isAlreadyEchoed(message)) {
 			//System.out.println("ECHO : nodeId : "+message.getSenderId());
 			echoMessages.add(message);
-<<<<<<< HEAD
 			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.ECHO);
 			rabbitMQService.publishMessage(event);
-=======
-			rabbitMQService.publishMessage(message);
->>>>>>> branch 'master' of https://github.com/hegdesagar/Guppy.git
+
 		}
 		int echoCount = getEchoCount(message);
 		if (echoCount > (N - f) / 2 && !delivered && message.getSenderId().equals(nodeId)) {
 			//System.out.println("DELIVER : nodeId : "+message.getSenderId());
 			delivered = true;
 			deliver(message);
-<<<<<<< HEAD
+
 			//message.setType(MessageType.DELIVERED); //Change the type of the message to delivered.
 			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.DELIVERED);
 			rabbitMQService.publishMessage(event);
-=======
-			message.setType(MessageType.DELIVERED); //Change the type of the message to delivered.
-			rabbitMQService.publishMessage(message);
->>>>>>> branch 'master' of https://github.com/hegdesagar/Guppy.git
+
 		}
 	}
 
