@@ -1,12 +1,10 @@
 package com.guppy.simulator.rabbitmq.service;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-
 
 public class RabbitMQService {
 
@@ -22,9 +20,11 @@ public class RabbitMQService {
 		channel.exchangeDeclare(exchangeName, "fanout"); // Creating a fanout exchange
 	}
 
-	public void publishMessage(IMessage message) throws Exception {
-		channel.basicPublish(exchangeName, "", null, message.getContent().toString().getBytes("UTF-8"));
-		System.out.println(" [x] Sent '" + message + "'");
+	public void publishMessage(BroadcastEvent event) throws Exception {
+	    ObjectMapper mapper = new ObjectMapper();
+	    String jsonEvent = mapper.writeValueAsString(event);
+	    channel.basicPublish(exchangeName, "", null, jsonEvent.getBytes("UTF-8"));
+	    System.out.println(" [x] Sent '" + jsonEvent + "'");
 
 	}
 }

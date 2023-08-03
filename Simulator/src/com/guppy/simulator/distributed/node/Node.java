@@ -4,6 +4,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.message.IMessage;
+import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
 import com.guppy.simulator.common.Constants;
 import com.guppy.simulator.common.typdef.MessageContent;
@@ -25,23 +26,6 @@ public class Node extends AbstractNode {
 		super(_strategy);
 	}
 
-	@Override
-	public void run() {
-
-		while (true) {
-			try {
-
-				IMessage message = messageQueue.take();
-				strategy.executeStrategy(message);
-
-			} catch (Exception e) {
-				Thread.currentThread().interrupt();
-				// TODO Handle the exception...
-				System.out.println("Thred Interuppted Exception");
-			}
-		}
-
-	}
 
 	public boolean isLeader() {
 		return isLeader;
@@ -74,6 +58,27 @@ public class Node extends AbstractNode {
 				// Handle the exception
 				System.out.println("Interrupted exeception...");
 				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	@Override
+	public Boolean call() throws Exception {
+		while (true) {
+			try {
+
+				IMessage message = messageQueue.take();
+				//If the message is delivered then inform the network
+				if(MessageType.DELIVERED.equals(message.getType())){
+					return true;
+				}
+				//execute the strategy for this message
+				strategy.executeStrategy(message);
+
+			} catch (Exception e) {
+				Thread.currentThread().interrupt();
+				// TODO Handle the exception...
+				System.out.println("Thred Interuppted Exception");
 			}
 		}
 	}
