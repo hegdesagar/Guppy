@@ -20,7 +20,7 @@ import com.guppy.simulator.rabbitmq.service.RabbitMQService;
  * @author SagarHegde
  *
  */
-public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
+public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 
 	private boolean sentEcho;
 	private boolean delivered;
@@ -37,7 +37,7 @@ public class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
 		this.f = _f;
 		sentEcho = false;
 		delivered = false;
-		rabbitMQService = new RabbitMQService("your-exchange-name");
+		rabbitMQService = new RabbitMQService("SIMULATION-QUEUE");
 
 	}
 

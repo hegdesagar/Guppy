@@ -1,6 +1,7 @@
 package com.guppy.simulator.distributed.node;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.message.IMessage;
@@ -9,16 +10,17 @@ import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
 import com.guppy.simulator.common.Constants;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
+import com.guppy.simulator.core.NetworkSimulator;
 
 /**
  * 
  * @author HegdeSagar
  *
  */
-public class Node extends AbstractNode {
-
-	private static final AtomicLong idCounter = new AtomicLong();
-
+public class Node extends AbstractNode implements INode{
+	
+	private Future<Boolean> futureTask;
+	
 	/*
 	 * Constructor for node initialization
 	 */
@@ -26,10 +28,6 @@ public class Node extends AbstractNode {
 		super(_strategy);
 	}
 
-
-	public boolean isLeader() {
-		return isLeader;
-	}
 
 	public void setLeader(boolean isLeader) {
 		System.out.println("Node :" + nodeId + " is elected as leader!!!....");
@@ -41,30 +39,10 @@ public class Node extends AbstractNode {
 		return messageQueue;
 	}
 
-	protected synchronized NodeId generateNodeId() {
-		String idVal = String.valueOf(idCounter.getAndIncrement());
-		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
-	}
-
-	@Override
-	public void injectFault() {
-		boolean flag = true;
-		synchronized (this) {
-			try {
-				while (flag) {
-					this.wait();
-				}
-			} catch (InterruptedException e) {
-				// Handle the exception
-				System.out.println("Interrupted exeception...");
-				Thread.currentThread().interrupt();
-			}
-		}
-	}
-
 	@Override
 	public Boolean call() throws Exception {
-		while (true) {
+		System.out.println("in Node Call method");
+		while (!Thread.currentThread().isInterrupted()) {
 			try {
 
 				IMessage message = messageQueue.take();
@@ -75,12 +53,32 @@ public class Node extends AbstractNode {
 				//execute the strategy for this message
 				strategy.executeStrategy(message);
 
-			} catch (Exception e) {
-				Thread.currentThread().interrupt();
-				// TODO Handle the exception...
-				System.out.println("Thred Interuppted Exception");
-			}
+			} catch (InterruptedException e) {
+	            // InterruptedException cleared interruption status of thread
+	            // we should not call Thread.currentThread().interrupt() here
+	            // just log the event and return from method
+	            System.out.println("Thread was interrupted, Failed to complete operation");
+	            NetworkSimulator.getInstance().setSystemInSimulation(false);
+	            // rethrow InterruptedException to ensure enclosing method will handle it
+	            //throw e;
+	        } catch (Exception e) {
+	            System.out.println("Non-interrupted exception: " + e.getMessage());
+				NetworkSimulator.getInstance().setSystemInSimulation(false);
+				return false;
+	        }
 		}
+		return true;
 	}
+	
+    public void setFutureTask(Future<Boolean> futureTask) {
+        this.futureTask = futureTask;
+    }
+
+    public void stop() {
+        // Cancel the future task, interrupting if running
+        if (futureTask != null) {
+            futureTask.cancel(true);
+        }
+    }
 
 }

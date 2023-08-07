@@ -1,5 +1,6 @@
 package com.guppy.visualiserweb.controller;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,6 +10,8 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import com.guppy.simulator.core.ISimulator;
+import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.visualiserweb.data.model.Edge;
 import com.guppy.visualiserweb.data.model.EdgeData;
 import com.guppy.visualiserweb.data.model.Elements;
@@ -16,78 +19,87 @@ import com.guppy.visualiserweb.data.model.NetworkGraph;
 import com.guppy.visualiserweb.data.model.Node;
 import com.guppy.visualiserweb.data.model.NodeData;
 import com.guppy.visualiserweb.data.model.SimulationOptions;
+import com.guppy.visualiserweb.data.model.TimelineMessage;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DeliverCallback;
 
 @Controller
 public class VisualiserController {
 
-    NetworkGraph graph = new NetworkGraph();
+	NetworkGraph graph = new NetworkGraph();
 
-    @Autowired
-    private SimpMessagingTemplate template;
+	boolean inSimualtion = false;
 
-    @MessageMapping("/simulate")
-    public void simulate(SimulationOptions options) throws Exception {
-        System.out.println("In simulation:");
+	ISimulator simulator = NetworkSimulator.getInstance();
 
-        Integer nodes = options.getNodes();  // Accessing the nodes
-        String implementation = options.getImplementation(); // Accessing the implementation
-        int timeline = options.getTimeline(); // Accessing the timeline
+	private final static String QUEUE_NAME = "SIMULATION-QUEUE";
 
-        
-        //TODO remove these after testing
-        System.out.println("Nodes: " + nodes);
-        System.out.println("Implementation: " + implementation);
-        System.out.println("Timeline: " + timeline);
+	@Autowired
+	private SimpMessagingTemplate template;
 
-        // Further processing based on nodes, implementation, and timeline
-        // ...
+	@MessageMapping("/simulate")
+	public void simulate(SimulationOptions options) throws Exception {
+		System.out.println("In simulation:");
+		Integer nodes = 2;
+		if (options.getNodes() != null) {
+			nodes = options.getNodes(); // Accessing the nodes
+		}
+		String implementation = options.getImplementation(); // Accessing the implementation
+		int timeline = options.getTimeline(); // Accessing the timeline
 
-        System.out.println("Returning from simulation:");
+		// TODO remove these after testing
+		System.out.println("Nodes: " + nodes);
+		System.out.println("Implementation: " + implementation);
+		System.out.println("Timeline: " + timeline);
 
-        while (true) {
-            populateGraph();
-            Thread.sleep(1000); // simulated delay of 1s
-            // Sending the data whenever the NetworkGraph object changes
-            template.convertAndSend("/topic/simulate_data", graph);
-        }
-    }
+		// Further processing based on nodes, implementation, and timeline
+		// Start Simulation
+		startSimulation(nodes, implementation, timeline);
 
-    @MessageMapping("/highlight")
-    public void highlightNodes() throws Exception {
-        // replace with your logic for determining which nodes to highlight
-        List<String> nodesToHighlight = Arrays.asList("a");
-        template.convertAndSend("/topic/highlight_nodes", nodesToHighlight);
-    }
+		System.out.println("Returning from simulation:");
 
-    private void populateGraph() {
-        // Create nodes
-        Node nodeA = new Node(new NodeData("a"));
-        Node nodeB = new Node(new NodeData("b"));
-        Node nodeC = new Node(new NodeData("d"));
+		// Initialize the queue
+		ConnectionFactory factory = new ConnectionFactory();
+		factory.setHost("localhost");
+		Connection connection = factory.newConnection();
+		Channel channel = connection.createChannel();
 
-        // Create edges
-        Edge edgeAB = new Edge(new EdgeData("ab", 1, nodeA.getNodeData().getId(), nodeB.getNodeData().getId()));
-        Edge edgeAC = new Edge(new EdgeData("ac", 1, nodeA.getNodeData().getId(), nodeC.getNodeData().getId()));
-        Edge edgeBA = new Edge(new EdgeData("ba", 1, nodeB.getNodeData().getId(), nodeA.getNodeData().getId()));
-        Edge edgeBC = new Edge(new EdgeData("bc", 1, nodeB.getNodeData().getId(), nodeC.getNodeData().getId()));
-        Edge edgeCA = new Edge(new EdgeData("ca", 1, nodeC.getNodeData().getId(), nodeA.getNodeData().getId()));
-        Edge edgeCB = new Edge(new EdgeData("cb", 1, nodeC.getNodeData().getId(), nodeB.getNodeData().getId()));
+		channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+		System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
 
-        List<Node> nodes = new ArrayList<Node>();
-        List<Edge> edges = new ArrayList<Edge>();
-        nodes.add(nodeA);
-        nodes.add(nodeB);
-        nodes.add(nodeC);
+		while (true) {
+			// Start listening to the queue for the updates
+			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+				String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+				System.out.println(" [x] Received '" + message + "'");
+			};
+			channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> {
+			});
+			Thread.sleep(1000); // simulated delay of 1s
+			// Sending the data whenever the NetworkGraph object changes
 
-        edges.add(edgeAB);
-        edges.add(edgeAC);
-        edges.add(edgeBA);
-        edges.add(edgeBC);
-        edges.add(edgeCA);
-        edges.add(edgeCB);
+			// template.convertAndSend("/topic/simulate_data", graph);
+		}
+	}
 
-        Elements elements = new Elements(nodes, edges);
+	@MessageMapping("/highlight")
+	public void highlightNodes() throws Exception {
+		// replace with your logic for determining which nodes to highlight
+		List<String> nodesToHighlight = Arrays.asList("a");
+		template.convertAndSend("/topic/highlight_nodes", nodesToHighlight);
+	}
 
-        graph.setElements(elements);
-    }
+	@MessageMapping("/update_timeline")
+	public void updateTimeline(TimelineMessage timelineMessage) throws Exception {
+		System.out.println("Updated timeline: " + timelineMessage.getTimeline());
+
+		// Add logic here to handle the timeline update as needed
+	}
+
+	private void startSimulation(int nodes, String implementation, int faults) {
+
+		simulator.startSimulation(0, implementation, faults);
+	}
 }

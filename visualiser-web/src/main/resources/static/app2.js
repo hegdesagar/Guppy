@@ -169,7 +169,22 @@ function connect() {
 	}
 }
 
+// this event listener to handle changes to the range input
+document.getElementById('customRange1').addEventListener('change', function() {
+  document.getElementById('rangeValue').textContent = this.value;
+  updateTimeline(this.value); // Call the function to update the timeline
+});
 
+// Function to send the new timeline value to the server
+function updateTimeline(timelineValue) {
+  const messageJson = JSON.stringify({ 'timeline': timelineValue });
+  
+  // Assuming you have a WebSocket endpoint to handle timeline updates
+  stompClient.publish({
+    destination: "/app/update_timeline",
+    body: messageJson
+  });
+}
 /*function sendName() {
 	
 }*/
