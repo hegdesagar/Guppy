@@ -25,6 +25,8 @@ public final class NetworkSimulator extends  AbstractNetworkSimulator implements
 	private NetworkSimulator() {
 
 		nodeList = new ArrayList<INode>();
+		system_in_Simulation = true;
+		
 	}
 	
 	
@@ -41,43 +43,62 @@ public final class NetworkSimulator extends  AbstractNetworkSimulator implements
 	}
 
 	private void simulateNetwork(int noOfNodes, String strategy, Integer faults) throws Exception {	
-		System.out.println("IN BACKEND SIMULATION");
+		//System.out.println("IN BACKEND SIMULATION");
+		//System.out.println("Nodes :: "+ noOfNodes);
+		//TODO remove these hardcoaded values
+		strategy ="AuthenticatedEchoBroadcast";
+		faults = 1;
+		//TODO end
 		service = Executors.newFixedThreadPool(noOfNodes);
-		System.out.println("in Simulated Network :: Started Simulation");
+		//System.out.println("in Simulated Network :: Started Simulation");
+		List<Future<Boolean>> futures = new ArrayList<>();
 		// create nodes based on strategy
 		for (int i = 0; i < noOfNodes; i++) {
-			// TODO faults needs to be calculated
-			IBroadcastStrategy broadStrat = createObject(strategy, noOfNodes, noOfNodes);
+			// Create an object of the strategy we are going to use
+			IBroadcastStrategy broadStrat = createObject(strategy, noOfNodes, faults);
+			//Create a node based on this strategy and add it to the list of nodes
 			Node node = new Node(broadStrat);
 			nodeList.add(node);
 			//Add this future to inject faults later on
 			Future<Boolean> future = service.submit(node);
 			node.setFutureTask(future);
+			futures.add(future);
 
 		}
 		simulator.electLeader();//Elect the leader
 		while (system_in_Simulation) {
-			List<Future<Boolean>> futures = new ArrayList<>();
-			for (INode node : nodeList) {
-				Future<Boolean> future = service.submit(node);
-				futures.add(future);
-			}
-
-			Boolean isDelivered = null;
-			try {
-			    isDelivered = futures.get(0).get(10, TimeUnit.SECONDS); // timeout of 5 seconds
-			    if (isDelivered) {
-			        // Start the simulation again
-			        System.out.println("The message was delivered and starting next batch of messages!!");
-			    }
-			} catch (InterruptedException | ExecutionException e) {
-			    e.printStackTrace();
-			} catch (TimeoutException e) {
-			    System.out.println("Timeout occurred while waiting for message delivery.");
-			}finally {
-				//stop all the threads
-			}
+		    Boolean isDelivered = false;
+		    try {
+		        isDelivered = futures.get(0).get(10, TimeUnit.SECONDS); // timeout of 10 seconds
+		        // If messages are delivered, reset the nodes and continue simulation
+		        if (isDelivered) {
+		            System.out.println("STARTING SIMULATION AGAIN");
+		            
+		            // Cancel the old futures
+		            for (Future<Boolean> future : futures) {
+		               // future.cancel(true); // mayInterruptIfRunning = true
+		            }
+		            futures.clear(); // clear the old futures
+		            
+		            // Reset the nodes and create new tasks
+		            for (INode node : nodeList) {
+		                //node.reset(); // Reset the state of the node for a new simulation
+		                Future<Boolean> future = service.submit(node); // submit a new task for the node
+		                futures.add(future); // add the new future to the list
+		            }
+		            simulator.electLeader(); // Elect a new leader if needed 
+		        }
+		    }catch (InterruptedException | ExecutionException e) {
+		    	System.out.println("Issue is here......");
+		        e.printStackTrace();
+		    } catch (TimeoutException e) {
+		        System.out.println("Timeout occurred while waiting for message delivery.");
+		    }
+		    finally{
+		    	System.out.println("Executing Finally Block.. NEED TO DO SOME CLEAN UP");
+		    }
 		}
+
 
 	}
 	
@@ -105,7 +126,7 @@ public final class NetworkSimulator extends  AbstractNetworkSimulator implements
 	
 	public void electLeader() {
 		// TODO elect a legitimate leader
-		System.out.println("no of nodes created :+"+nodeList.size());
+		//System.out.println("no of nodes created :+"+nodeList.size());
 		nodeList.get(0).setLeader(true);
 	}
 	

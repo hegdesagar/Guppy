@@ -42,9 +42,11 @@ public class VisualiserController {
 	@MessageMapping("/simulate")
 	public void simulate(SimulationOptions options) throws Exception {
 		System.out.println("In simulation:");
-		Integer nodes = 2;
+		Integer nodes;
 		if (options.getNodes() != null) {
 			nodes = options.getNodes(); // Accessing the nodes
+		}else {
+			nodes =2;
 		}
 		String implementation = options.getImplementation(); // Accessing the implementation
 		int timeline = options.getTimeline(); // Accessing the timeline
@@ -56,7 +58,14 @@ public class VisualiserController {
 
 		// Further processing based on nodes, implementation, and timeline
 		// Start Simulation
-		startSimulation(nodes, implementation, timeline);
+		// Start Simulation in a new thread
+		new Thread(() -> {
+			startSimulation(nodes, implementation, timeline);
+		}).start();
+
+		// Start a new thread to listen to the queue
+		
+		//startSimulation(nodes, implementation, timeline);
 
 		System.out.println("Returning from simulation:");
 
@@ -98,8 +107,8 @@ public class VisualiserController {
 		// Add logic here to handle the timeline update as needed
 	}
 
-	private void startSimulation(int nodes, String implementation, int faults) {
+	private void startSimulation( int nodes, String implementation, int faults) {
 
-		simulator.startSimulation(0, implementation, faults);
+		simulator.startSimulation(nodes, implementation, faults);
 	}
 }

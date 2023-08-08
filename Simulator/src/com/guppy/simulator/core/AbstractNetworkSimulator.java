@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
+import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.distributed.node.INode;
 
 public abstract class AbstractNetworkSimulator{

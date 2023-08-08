@@ -8,6 +8,10 @@ public class NodeId {
 		this.id = content;
 	}
 
+	 public String getId() {
+	        return id;
+	    }
+
 	public String toString() {
 
 		return id;

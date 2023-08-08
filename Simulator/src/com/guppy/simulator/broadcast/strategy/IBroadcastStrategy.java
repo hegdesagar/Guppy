@@ -16,4 +16,12 @@ public interface IBroadcastStrategy {
 
 	void setNodeId(NodeId nodeId);
 
+	boolean isDelivered();
+
+	void setIsDelivered(boolean b);
+
+	void setSentEcho(boolean b);
+
+	void resetEchoMessages();
+
 }
