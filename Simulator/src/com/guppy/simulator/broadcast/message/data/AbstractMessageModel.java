@@ -20,10 +20,6 @@ public abstract class AbstractMessageModel implements IMessage {
 		SEND, ECHO , DELIVERED
 	};
 	
-	public enum EventType{
-		SEND, ECHO , DELIVERED
-	}
-
 	protected MessageId messageId;
 
 	protected MessageContent messageContent;

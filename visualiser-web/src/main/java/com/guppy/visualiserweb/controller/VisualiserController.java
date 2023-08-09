@@ -45,8 +45,8 @@ public class VisualiserController {
 		Integer nodes;
 		if (options.getNodes() != null) {
 			nodes = options.getNodes(); // Accessing the nodes
-		}else {
-			nodes =2;
+		} else {
+			nodes = 2;
 		}
 		String implementation = options.getImplementation(); // Accessing the implementation
 		int timeline = options.getTimeline(); // Accessing the timeline
@@ -56,6 +56,31 @@ public class VisualiserController {
 		System.out.println("Implementation: " + implementation);
 		System.out.println("Timeline: " + timeline);
 
+		// Create RabbitMQ connection
+
+		// Initialize the queue
+		ConnectionFactory factory = new ConnectionFactory();
+		factory.setHost("localhost");
+		Connection connection = factory.newConnection();
+		Channel channel = connection.createChannel();
+
+		// Declare the exchange
+		channel.exchangeDeclare(QUEUE_NAME, "fanout");
+
+		// Declare a queue (can be a named queue or an anonymous one)
+		String queueName = channel.queueDeclare().getQueue();
+
+		// Bind the queue to the fanout exchange
+		channel.queueBind(queueName, QUEUE_NAME, "");
+
+		System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
+		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+		    String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+		    System.out.println(" [x] Received '" + message + "'");
+		};
+
+		channel.basicConsume(queueName, true, deliverCallback, consumerTag -> { });
 		// Further processing based on nodes, implementation, and timeline
 		// Start Simulation
 		// Start Simulation in a new thread
@@ -64,33 +89,23 @@ public class VisualiserController {
 		}).start();
 
 		// Start a new thread to listen to the queue
-		
-		//startSimulation(nodes, implementation, timeline);
+
+		// startSimulation(nodes, implementation, timeline);
 
 		System.out.println("Returning from simulation:");
 
-		// Initialize the queue
-		ConnectionFactory factory = new ConnectionFactory();
-		factory.setHost("localhost");
-		Connection connection = factory.newConnection();
-		Channel channel = connection.createChannel();
-
-		channel.queueDeclare(QUEUE_NAME, false, false, false, null);
 		System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
 
-		while (true) {
-			// Start listening to the queue for the updates
-			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-				String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-				System.out.println(" [x] Received '" + message + "'");
-			};
-			channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> {
-			});
-			Thread.sleep(1000); // simulated delay of 1s
-			// Sending the data whenever the NetworkGraph object changes
+		/*
+		 * while (true) {
+		 * 
+		 * channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> { });
+		 * // Thread.sleep(1000); // simulated delay of 1s // Sending the data whenever
+		 * the NetworkGraph object changes
+		 * 
+		 * // template.convertAndSend("/topic/simulate_data", graph); }
+		 */
 
-			// template.convertAndSend("/topic/simulate_data", graph);
-		}
 	}
 
 	@MessageMapping("/highlight")
@@ -107,7 +122,7 @@ public class VisualiserController {
 		// Add logic here to handle the timeline update as needed
 	}
 
-	private void startSimulation( int nodes, String implementation, int faults) {
+	private void startSimulation(int nodes, String implementation, int faults) {
 
 		simulator.startSimulation(nodes, implementation, faults);
 	}

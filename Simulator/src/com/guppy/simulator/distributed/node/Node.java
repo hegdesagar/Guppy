@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.broadcast.strategy.AuthenticatedEchoBroadcastStrategy;
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
@@ -16,6 +17,7 @@ import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.Controller;
 import com.guppy.simulator.core.NetworkSimulator;
+import com.guppy.simulator.rabbitmq.service.RabbitMQService;
 
 /**
  * 
@@ -43,11 +45,14 @@ public class Node implements INode {
 	private int F;
 
 	private final Controller controller;
+	
+	private static volatile RabbitMQService rabbitMQService;
+
 
 	/*
 	 * Constructor for node initialization
 	 */
-	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller) {
+	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller) throws Exception {
 		this.nodeId = generateNodeId();
 		_strategy.setNodeId(this.nodeId);
 		this.strategy = _strategy;
@@ -61,7 +66,7 @@ public class Node implements INode {
 	public void run() {
 		while (NetworkSimulator.getInstance().isSystemInSimulation()) {
 			if (controller.isResetInProgress() && !isLeader()) { // Only non-leader nodes reset here
-				System.out.println("Node :" + nodeId + " is resetting");
+				//System.out.println("Node :" + nodeId + " is resetting");
 				try {
 					strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
 				} catch (Exception e) {
@@ -76,10 +81,16 @@ public class Node implements INode {
 			try {
 				IMessage message = messageQueue.poll(1000, TimeUnit.MILLISECONDS);
 				if (message != null) {
+
+					// broadcast the message to the RabbitMQ
+					BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, message.getType());
+					getRabbitMQService().publishMessage(event);
+
+					// Process the message
 					if (strategy.executeStrategy(message)) {
 						if (isLeader()) { // Leader initiates reset
 							controller.initiateReset(N - 1);
-							System.out.println("DELEIVERED>>>>>>>>>>>>>>>>> : Sim Count : " + simulationCount);
+							//System.out.println("DELEIVERED>>>>>>>>>>>>>>>>> : Sim Count : " + simulationCount);
 							System.out.println(" The Message was delivered by node leader : " + nodeId);
 							strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
 							strategy.setNodeId(nodeId);
@@ -130,5 +141,21 @@ public class Node implements INode {
 	public boolean isLeader() {
 		return isLeader;
 	}
+	
+	private static RabbitMQService getRabbitMQService() {
+        if (rabbitMQService == null) {
+            synchronized (Node.class) {
+                if (rabbitMQService == null) {
+                    try {
+                        rabbitMQService = new RabbitMQService("SIMULATION-QUEUE");
+                    } catch (Exception e) {
+                        LOGGER.info("Issue Initializing the RabbitMQ Service", e);
+                        throw new RuntimeException("Failed to initialize RabbitMQ Service", e);
+                    }
+                }
+            }
+        }
+        return rabbitMQService;
+    }
 
 }

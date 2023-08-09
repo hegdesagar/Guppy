@@ -62,9 +62,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 			}
 
 			simulator.electLeader(); // Elect the leader
-			long count =100;
+			long count =50;
 			while (count>0) {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 				// Keep running
 				count--;
 			}

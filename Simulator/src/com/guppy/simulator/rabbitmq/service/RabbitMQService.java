@@ -30,7 +30,7 @@ public class RabbitMQService {
 		try {
 			jsonEvent = mapper.writeValueAsString(event);
 			channel.basicPublish(exchangeName, "", null, jsonEvent.getBytes("UTF-8"));
-			System.out.println(" [x] Sent '" + jsonEvent + "'");
+			//System.out.println(" [x] Sent '" + jsonEvent + "'");
 		} catch (JsonProcessingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

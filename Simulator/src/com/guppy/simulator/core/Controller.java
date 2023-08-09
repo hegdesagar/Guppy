@@ -9,7 +9,7 @@ public class Controller {
 	public synchronized void initiateReset(int numberOfNodes) {
 		this.resetFlag = true;
 		this.latch = new CountDownLatch(numberOfNodes);
-		System.out.println("Latch initialized with count: " + numberOfNodes);
+		//System.out.println("Latch initialized with count: " + numberOfNodes);
 	}
 
 	public synchronized boolean isResetInProgress() {
@@ -19,7 +19,7 @@ public class Controller {
 	public synchronized void decrementLatch() {
 		if (latch != null) {
 			latch.countDown();
-			System.out.println("Latch decremented, current count: " + latch.getCount());
+			//System.out.println("Latch decremented, current count: " + latch.getCount());
 		}
 		
 	}

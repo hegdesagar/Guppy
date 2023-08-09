@@ -1,6 +1,5 @@
 package com.guppy.simulator.broadcast.events;
 
-import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.EventType;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.common.typdef.NodeId;
 
@@ -8,7 +7,7 @@ public class BroadcastEvent {
 
 	private NodeId senderId;
 	private NodeId receiverId;
-	private EventType eventType;
+	private MessageType eventType;
 	private long timeStamp;
 
 	public NodeId getSenderId() {
@@ -27,11 +26,11 @@ public class BroadcastEvent {
 		this.receiverId = receiverId;
 	}
 
-	public EventType getEventType() {
+	public MessageType getEventType() {
 		return eventType;
 	}
 
-	public void setEventType(EventType eventType) {
+	public void setEventType(MessageType eventType) {
 		this.eventType = eventType;
 	}
 
@@ -43,7 +42,7 @@ public class BroadcastEvent {
 		this.timeStamp = timeStamp;
 	}
 
-	public BroadcastEvent(NodeId senderId, NodeId receiverId, EventType eventType) {
+	public BroadcastEvent(NodeId senderId, NodeId receiverId, MessageType eventType) {
 		super();
 		this.senderId = senderId;
 		this.receiverId = receiverId;
