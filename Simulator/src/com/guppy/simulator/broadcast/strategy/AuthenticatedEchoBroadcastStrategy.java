@@ -2,15 +2,13 @@ package com.guppy.simulator.broadcast.strategy;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.guppy.simulator.broadcast.events.BroadcastEvent;
+//import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.broadcast.message.Message;
-import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.EventType;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
@@ -29,7 +27,6 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 	private int N; // Number of nodes
 	private int f; // Maximum number of faulty nodes
 	private NodeId nodeId;
-	//private RabbitMQService rabbitMQService;
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticatedEchoBroadcastStrategy.class);
 
@@ -41,14 +38,11 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		this.f = _f;
 		sentEcho = false;
 		delivered = false;
-		//rabbitMQService = new RabbitMQService("SIMULATION-QUEUE");
-
 	}
 
 	@Override
-	public void executeStrategy(IMessage message) throws Exception {
+	public boolean executeStrategy(IMessage message) throws Exception {
 		if (MessageType.SEND.equals(message.getType())) {
-			//System.out.println("SEND : nodeId : "+message.getSenderId());
 			if (message.getSenderId().equals(nodeId) && !sentEcho) {
 				// If this node is the sender of the SEND message
 				sentEcho = true;
@@ -65,28 +59,49 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 				broadcastMessage(echoMessage);
 			}
 
-			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.SEND);
-			//rabbitMQService.publishMessage(event);
 		} else if (MessageType.ECHO.equals(message.getType()) && !isAlreadyEchoed(message)) {
-			//System.out.println("ECHO : nodeId : "+message.getSenderId());
 			echoMessages.add(message);
-			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.ECHO);
-			//rabbitMQService.publishMessage(event);
-
 		}
 		int echoCount = getEchoCount(message);
-		if (echoCount > (N - f) / 2 && !delivered && message.getSenderId().equals(nodeId)) {
-			//System.out.println("DELIVER : nodeId : "+message.getSenderId());
-			delivered = true;
-			deliver(message); //TODO this can be removed
+		if (echoCount > (N - f) / 2 && !delivered && isNodeLeader(nodeId)) {
+			this.delivered  = true;
 			LOGGER.info("Node : {}  Message delivered ", nodeId);
-			//message.setType(MessageType.DELIVERED); //Change the type of the message to delivered.
-			BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, EventType.DELIVERED);
-			//rabbitMQService.publishMessage(event);
-
+			return true;
 		}
+		return false;
 	}
 
+	@Override
+	public boolean leaderBroadcast(MessageContent content) {
+		// Create a new SEND message with the given content
+		Message sendMessage = new Message(nodeId, content, MessageType.SEND);
+		// Broadcast the SEND message to all other nodes
+		for (INode node : NetworkSimulator.getInstance().getNodes()) {
+			try {
+				node.publishMessage(sendMessage);
+			} catch (InterruptedException e) {
+				LOGGER.info("Node : {} Thread interuppted while leader broadcast.", nodeId);
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	@Override
+	public boolean isDelivered() {
+	    return delivered;
+	}
+	
+	private int getEchoCount(IMessage message) {
+	    int count = 0;
+	    for (IMessage echoMessage : echoMessages) {
+	        if (echoMessage.getContent().equals(message.getContent())) {
+	            count++;
+	        }
+	    }
+	    return count;
+	}
+	
 	/**
 	 * @param message
 	 */
@@ -100,18 +115,14 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		return false;
 	}
 	
-	@Override
-	public void broadcastMessage(IMessage message) {
+	private void broadcastMessage(IMessage message) {
 		// Create a new ECHO message with the same content as the original message
 		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
 
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
-			//BlockingQueue<IMessage> queue = node.getMessageQueue();
 			try {
-				//queue.put(echoMessage);
 				node.publishMessage(echoMessage);
 			} catch (InterruptedException e) {
-				// TODO: handle exception
 				LOGGER.info("Node : {} Thread interuppted while broadcasting.", nodeId);
 				Thread.currentThread().interrupt();
 			}
@@ -119,79 +130,18 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 
 	}
 	
-	public void deliver(IMessage message) {
-		System.out.println("Node " + nodeId + " delivered message: " + message.getContent());
-	}
-	
-	@Override
-	public boolean isDelivered() {
-	    return delivered;
-	}
-	
-	@Override
-	public void setIsDelivered(boolean b) {
-		delivered = b;
-		
-	}
-	public int getEchoCount(IMessage message) {
-	    int count = 0;
-	    for (IMessage echoMessage : echoMessages) {
-	        if (echoMessage.getContent().equals(message.getContent())) {
-	            count++;
-	        }
-	    }
-	    return count;
-	}
-	
-	@Override
-	public void leaderBroadcast(MessageContent content) {
-		// Create a new SEND message with the given content
-		Message sendMessage = new Message(nodeId, content, MessageType.SEND);
-		// Broadcast the SEND message to all other nodes
-		//System.out.println("Number of nodes are :"+NetworkSimulator.getInstance().getNodes().size());
-		for (INode node : NetworkSimulator.getInstance().getNodes()) {
-			//BlockingQueue<IMessage> queue = node.getMessageQueue();
-			try {
-				//queue.put(sendMessage);
-				node.publishMessage(sendMessage);
-			} catch (InterruptedException e) {
-				// TODO: handle exception
-				LOGGER.info("Node : {} Thread interuppted while leader broadcast.", nodeId);
-				Thread.currentThread().interrupt();
-			}
-		}
-
-	}
-	
-	@Override
-	public NodeId getNodeId() {
-		return nodeId;
-	}
-	
 	@Override
 	public void setNodeId(NodeId nodeId) {
 		this.nodeId = nodeId;
 	}
 
-	@Override
-	public void setSentEcho(boolean b) {
-		
-		this.sentEcho = b;
-		
+	private boolean isNodeLeader(NodeId id) {
+		for (INode node : NetworkSimulator.getInstance().getNodes()) {
+			if(node.getNodeId().equals(id)) {
+				return node.isLeader();
+			}
+		}
+		return false;
 	}
-
-
-	public List<IMessage> getEchoMessages() {
-		return echoMessages;
-	}
-
-	public void setEchoMessages(List<IMessage> echoMessages) {
-		this.echoMessages = echoMessages;
-	}
-	
-	public void resetEchoMessages() {
-		this.echoMessages = new LinkedList<IMessage>();;
-	}
-
 
 }

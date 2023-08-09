@@ -6,22 +6,15 @@ import com.guppy.simulator.common.typdef.NodeId;
 
 public interface IBroadcastStrategy {
 
-	void executeStrategy(IMessage message) throws Exception;
+	boolean executeStrategy(IMessage message) throws Exception;
 
-	void broadcastMessage(IMessage message);
-
-	void leaderBroadcast(MessageContent content);
-
-	NodeId getNodeId();
+	boolean leaderBroadcast(MessageContent content);
 
 	void setNodeId(NodeId nodeId);
 
 	boolean isDelivered();
 
-	void setIsDelivered(boolean b);
+	//void reset();
 
-	void setSentEcho(boolean b);
-
-	void resetEchoMessages();
 
 }
