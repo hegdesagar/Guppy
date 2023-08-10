@@ -1,7 +1,9 @@
 package com.guppy.simulator.core;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.distributed.node.INode;
 
 public interface ISimulator {
@@ -27,6 +29,8 @@ public interface ISimulator {
 	public boolean isSystemInSimulation();
 	
 	public void setSystemInSimulation(boolean flag);
+
+	public ArrayList<NodeId> getNodeName();
 	
 }
 

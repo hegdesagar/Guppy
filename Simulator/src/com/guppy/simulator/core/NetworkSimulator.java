@@ -4,23 +4,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.strategy.AuthenticatedEchoBroadcastStrategy;
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
+import com.guppy.simulator.common.Constants;
+import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.distributed.node.INode;
 import com.guppy.simulator.distributed.node.Node;
 
 public final class NetworkSimulator extends AbstractNetworkSimulator implements ISimulator {
 
+	private static final AtomicLong idCounter = new AtomicLong();
+	
 	private static NetworkSimulator simulator;
 
 	public volatile boolean system_in_Simulation = false;
 
 	private ExecutorService service;
+	
+	private final ArrayList<NodeId> nodeName;
 
 	private NetworkSimulator() {
 		nodeList = new ArrayList<INode>();
 		system_in_Simulation = true;
+		nodeName = new ArrayList<NodeId>();
 	}
 
 	public static ISimulator getInstance() {
@@ -51,8 +59,10 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 				// Create an object of the strategy we are going to use
 				IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
 				// Create a node based on this strategy and add it to the list of nodes
-				Node node = new Node(broadStrat,noOfNodes, faults, controller);
+				NodeId nodeId = generateNodeId();
+				Node node = new Node(broadStrat,noOfNodes, faults, controller, nodeId);
 				nodeList.add(node);
+				nodeName.add(nodeId);
 				// Create a new Thread for each node and start it
 				Thread nodeThread = new Thread(node);
 				nodeThread.setDaemon(true);
@@ -135,6 +145,16 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	public void setSystemInSimulation(boolean flag) {
 		system_in_Simulation = flag;
+	}
+
+	@Override
+	public ArrayList<NodeId> getNodeName() {
+		return nodeName;
+	}
+	
+	protected synchronized NodeId generateNodeId() {
+		String idVal = String.valueOf(idCounter.getAndIncrement());
+		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
 	}
 
 }

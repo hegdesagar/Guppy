@@ -3,9 +3,12 @@ package com.guppy.visualiserweb.data.model;
 import java.util.List;
 
 public class Elements {
-	
+
 	private List<Node> nodes;
 	private List<Edge> edges;
+
+	public Elements() {
+	}
 
 	public Elements(List<Node> nodes2, List<Edge> edges2) {
 		this.nodes = nodes2;

@@ -4,6 +4,10 @@ public class NodeData {
 	
 	private String id;
 	
+	NodeData(){
+		
+	}
+	
 	public NodeData(String nodeId){
 		this.id = nodeId;
 	}

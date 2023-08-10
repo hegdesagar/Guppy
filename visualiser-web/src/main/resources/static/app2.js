@@ -39,7 +39,7 @@ window.onload = function() {
 		]
 	};
 	document.getElementById('mainalert').innerText = "Welcome to Node Broadcasting simulator";
-	drawGraph(elements);
+	drawGraph(elements,'#a');
 }
 
 // define the cy variable without initializing
@@ -54,14 +54,18 @@ const stompClient = new StompJs.Client({
 
 let simulateDataSubscription;
 let highlightNodesSubscription;
+// Subscription to alert_updates topic
+let alertSubscription;
 
 stompClient.onConnect = (frame) => {
 	console.log('Connected: ' + frame);
 	simulateDataSubscription = stompClient.subscribe('/topic/simulate_data', (greeting) => {
-		console.log(greeting.body);
+		//console.log(greeting.body);
 		const receivedData = JSON.parse(greeting.body);
 		const graphData = receivedData.elements;
-		drawGraph(graphData);
+		//const stringData = JSON.stringify(graphData);
+		console.log(graphData);
+		drawGraph(graphData,'#node-0');
 	});
 
 	highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
@@ -73,6 +77,11 @@ stompClient.onConnect = (frame) => {
 			cy.getElementById(nodeId).addClass('highlighted');
 		});
 	});
+
+	alertSubscription = stompClient.subscribe('/topic/alert_updates', (alertMessage) => {
+		console.log('Received alert update', alertMessage);
+		document.getElementById('mainalert').innerText = alertMessage.body;
+	});
 };
 
 function disconnect() {
@@ -82,6 +91,10 @@ function disconnect() {
 
 	if (highlightNodesSubscription) {
 		highlightNodesSubscription.unsubscribe();
+	}
+	// Unsubscribe from the alert updates
+	if (alertSubscription) {
+		alertSubscription.unsubscribe();
 	}
 
 	stompClient.deactivate();
@@ -127,11 +140,11 @@ function publish() {
 	const timelineValue = $('#customRange1').val();
 	//const implementation = document.querySelector('#implementation .dropdown-item').textContent;
 
-let messageJson = JSON.stringify({
-    'nodes': nodesValue,
-    'implementation': selectedImplementation,
-    'timeline': timelineValue
-});
+	let messageJson = JSON.stringify({
+		'nodes': nodesValue,
+		'implementation': selectedImplementation,
+		'timeline': timelineValue
+	});
 
 
 	stompClient.publish({
@@ -171,19 +184,19 @@ function connect() {
 
 // this event listener to handle changes to the range input
 document.getElementById('customRange1').addEventListener('change', function() {
-  document.getElementById('rangeValue').textContent = this.value;
-  updateTimeline(this.value); // Call the function to update the timeline
+	document.getElementById('rangeValue').textContent = this.value;
+	updateTimeline(this.value); // Call the function to update the timeline
 });
 
 // Function to send the new timeline value to the server
 function updateTimeline(timelineValue) {
-  const messageJson = JSON.stringify({ 'timeline': timelineValue });
-  
-  // Assuming you have a WebSocket endpoint to handle timeline updates
-  stompClient.publish({
-    destination: "/app/update_timeline",
-    body: messageJson
-  });
+	const messageJson = JSON.stringify({ 'timeline': timelineValue });
+
+	// Assuming you have a WebSocket endpoint to handle timeline updates
+	stompClient.publish({
+		destination: "/app/update_timeline",
+		body: messageJson
+	});
 }
 /*function sendName() {
 	
@@ -197,7 +210,7 @@ $(function() {
 });
 
 // define a function to draw the graph
-function drawGraph(elements) {
+function drawGraph(elements, rootNode) {
 	console.log("In Cryptoscape..");
 	cy = cytoscape({
 		container: document.getElementById('cy'),
@@ -230,12 +243,12 @@ function drawGraph(elements) {
 		layout: {
 			name: 'breadthfirst',
 			directed: true,
-			roots: '#a',
+			roots: rootNode,
 			padding: 10
 		}
 	});
 
-	var bfs = cy.elements().bfs('#a', function() { }, true);
+	var bfs = cy.elements().bfs(rootNode, function() { }, true);
 
 	var i = 0;
 	var highlightNextEle = function() {

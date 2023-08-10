@@ -1,5 +1,6 @@
 package com.guppy.simulator.distributed.node;
 
+import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -30,8 +31,6 @@ public class Node implements INode {
 
 	private int simulationCount = 0;
 
-	private static final AtomicLong idCounter = new AtomicLong();
-
 	protected NodeId nodeId;
 
 	protected boolean isLeader = false;
@@ -47,19 +46,20 @@ public class Node implements INode {
 	private final Controller controller;
 	
 	private static volatile RabbitMQService rabbitMQService;
-
-
+	
 	/*
 	 * Constructor for node initialization
 	 */
-	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller) throws Exception {
-		this.nodeId = generateNodeId();
+	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller, NodeId _nodeId) throws Exception {
+		//this.nodeId = generateNodeId();
+		this.nodeId = _nodeId;
 		_strategy.setNodeId(this.nodeId);
 		this.strategy = _strategy;
 		messageQueue = new LinkedBlockingQueue<IMessage>();
 		this.F = _F;
 		this.N = _N;
 		this.controller = controller;
+		
 	}
 
 	@Override
@@ -83,7 +83,7 @@ public class Node implements INode {
 				if (message != null) {
 
 					// broadcast the message to the RabbitMQ
-					BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, message.getType());
+					BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, message.getType(),NetworkSimulator.getInstance().getNodeName());
 					getRabbitMQService().publishMessage(event);
 
 					// Process the message
@@ -123,11 +123,6 @@ public class Node implements INode {
 	@Override
 	public synchronized void publishMessage(IMessage msg) throws InterruptedException {
 		this.messageQueue.put(msg);
-	}
-
-	protected synchronized NodeId generateNodeId() {
-		String idVal = String.valueOf(idCounter.getAndIncrement());
-		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
 	}
 
 	public NodeId getNodeId() {
