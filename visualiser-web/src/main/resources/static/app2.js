@@ -30,16 +30,18 @@ window.onload = function() {
 		],
 
 		edges: [
-			{ data: { id: 'ab', weight: 1, source: 'a', target: 'b' } },
-			{ data: { id: 'ac', weight: 1, source: 'a', target: 'c' } },
-			{ data: { id: 'ba', weight: 1, source: 'b', target: 'a' } },
-			{ data: { id: 'bc', weight: 1, source: 'b', target: 'c' } },
-			{ data: { id: 'ca', weight: 1, source: 'c', target: 'a' } },
-			{ data: { id: 'cb', weight: 1, source: 'c', target: 'b' } }
+			{ data: { id: 'ab', weight: 1, source: 'a', target: 'b', arrow: 'triangle' } },
+			{ data: { id: 'ac', weight: 1, source: 'a', target: 'c', arrow: 'triangle' } },
+			{ data: { id: 'ba', weight: 1, source: 'b', target: 'a', arrow: 'triangle' } },
+			{ data: { id: 'bc', weight: 1, source: 'b', target: 'c', arrow: 'triangle' } },
+			{ data: { id: 'ca', weight: 1, source: 'c', target: 'a', arrow: 'triangle' } },
+			{ data: { id: 'cb', weight: 1, source: 'c', target: 'b', arrow: 'triangle' } }
 		]
 	};
 	document.getElementById('mainalert').innerText = "Welcome to Node Broadcasting simulator";
-	drawGraph(elements,'#a');
+	drawGraph(elements, '#a');
+	highlightSpecificElements('a', 'b', 'ab', 'send');
+
 }
 
 // define the cy variable without initializing
@@ -65,18 +67,35 @@ stompClient.onConnect = (frame) => {
 		const graphData = receivedData.elements;
 		//const stringData = JSON.stringify(graphData);
 		console.log(graphData);
-		drawGraph(graphData,'#node-0');
+		drawGraph(graphData, '#node-0');
+		//highlightSpecificElements(graphData, graphData,graphData,graphData);
 	});
 
 	highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
 		console.log('Received highlight_nodes message', message);
-		const nodesToHighlight = JSON.parse(message.body);
-		console.log('Nodes to highlight', nodesToHighlight);
-		nodesToHighlight.forEach(nodeId => {
-			console.log('Highlighting node', nodeId);
-			cy.getElementById(nodeId).addClass('highlighted');
-		});
+		const highlightEvent = JSON.parse(message.body);
+
+		const senderNode = highlightEvent.senderNode;
+		const receiverNode = highlightEvent.receiverNode;
+		const edgeHighlight = highlightEvent.edgeHighlight;
+		const eventType = highlightEvent.eventType;
+		const leadernode = highlightEvent.leaderNode;
+
+		// First, reset the styles for all nodes and edges to their base styles
+		resetStyles();
+
+		// Get the styles determined by the event type
+		const styles = determineStyles(eventType);
+
+		// Apply styles based on whether the event refers to a sender or receiver
+		cy.getElementById(senderNode).style('background-color', 'orange');
+		cy.getElementById(receiverNode).style('background-color', 'blue');
+		cy.getElementById(leadernode).style('background-color', 'red')
+
+		// Apply the edge styles
+		cy.getElementById(edgeHighlight).style(styles.edge);
 	});
+
 
 	alertSubscription = stompClient.subscribe('/topic/alert_updates', (alertMessage) => {
 		console.log('Received alert update', alertMessage);
@@ -209,6 +228,18 @@ $(function() {
 	//$("#send").click(() => sendName());
 });
 
+
+function highlightSpecificElements(nodeSender, nodeReceiver, edgeId, label) {
+	// Highlight the node
+	cy.getElementById(nodeSender).style('background-color', '#61bffc');
+	cy.getElementById(nodeReceiver).style('background-color', '#61bffc');
+
+	// Highlight the edge
+	cy.getElementById(edgeId).style('line-color', '#61bffc');
+	cy.getElementById(edgeId).style('target-arrow-color', '#61bffc');
+}
+
+
 // define a function to draw the graph
 function drawGraph(elements, rootNode) {
 	console.log("In Cryptoscape..");
@@ -223,8 +254,9 @@ function drawGraph(elements, rootNode) {
 			})
 			.selector('edge')
 			.style({
-				'curve-style': 'straight',
-				'target-arrow-shape': 'none',
+				//'curve-style': 'straight',
+				'curve-style': 'bezier',
+				'target-arrow-shape': 'triangle',
 				'width': 4,
 				'line-color': '#ddd',
 				'target-arrow-color': '#ddd'
@@ -241,22 +273,54 @@ function drawGraph(elements, rootNode) {
 		elements: elements, // use the incoming data to set the elements
 
 		layout: {
-			name: 'breadthfirst',
+			//name: 'breadthfirst',
+			name: 'circle',
 			directed: true,
 			roots: rootNode,
 			padding: 10
-		}
+		},
+
 	});
 
-	var bfs = cy.elements().bfs(rootNode, function() { }, true);
-
-	var i = 0;
-	var highlightNextEle = function() {
-		if (i < bfs.path.length) {
-			bfs.path[i].addClass('highlighted');
-
-			i++;
-			setTimeout(highlightNextEle, 1000);
-		}
-	};
 }
+
+	function determineStyles(eventType) {
+		const styles = {
+			node: {},
+			edge: {}
+		};
+
+		switch (eventType) {
+			case 'Delivered':
+				styles.edge = {
+					'line-color': 'green',
+					'target-arrow-color': 'green'
+				};
+				break;
+			case 'Echo':
+				styles.edge = {
+					'line-color': 'blue',
+					'target-arrow-color': 'blue'
+				};
+				break;
+			case 'Sent':
+				styles.edge = {
+					'line-color': 'red',
+					'target-arrow-color': 'red'
+				};
+				break;
+		}
+
+		return styles;
+	}
+
+	function resetStyles() {
+		cy.nodes().style({
+			'background-color': '',  // The base background color of your nodes
+		});
+
+		cy.edges().style({
+			'line-color': '#ddd',   // The base line color of your edges
+			'target-arrow-color': '#ddd',   // The base arrow color of your edges
+		});
+	}

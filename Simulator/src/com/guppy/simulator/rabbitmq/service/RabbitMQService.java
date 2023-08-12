@@ -10,7 +10,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
-public class RabbitMQService {
+/*public class RabbitMQService {
 
 	private final Channel channel;
 	private final String exchangeName;
@@ -45,4 +45,4 @@ public class RabbitMQService {
 	    
 
 	}
-}
+}*/

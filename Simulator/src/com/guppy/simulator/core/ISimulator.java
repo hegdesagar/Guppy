@@ -31,6 +31,10 @@ public interface ISimulator {
 	public void setSystemInSimulation(boolean flag);
 
 	public ArrayList<NodeId> getNodeName();
+
+	public void introduceLatencyInNetwork(int timeline);
+	
+	public Integer getNetworkLatency();
 	
 }
 

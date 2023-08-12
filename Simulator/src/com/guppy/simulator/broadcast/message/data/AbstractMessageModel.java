@@ -1,6 +1,7 @@
 package com.guppy.simulator.broadcast.message.data;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.common.typdef.MessageContent;
@@ -30,13 +31,16 @@ public abstract class AbstractMessageModel implements IMessage {
 	
 	protected NodeId senderId;
 
+	protected AtomicLong iteration;
+
 	/**
 	 * Constructor for creating an instance of AbstractMessageModel.
 	 *
 	 * @param msgContent  The content of the message.
 	 * @param messageType The type of the message.
+	 * @param iteration 
 	 */
-	public AbstractMessageModel(MessageContent msgContent, MessageType messageType) {
+	public AbstractMessageModel(MessageContent msgContent, MessageType messageType, AtomicLong iteration) {
 
 		// The time-stamp representing the current date and time.
 		this.timeStamp = LocalDateTime.now();
@@ -46,6 +50,8 @@ public abstract class AbstractMessageModel implements IMessage {
 		this.messageContent = msgContent;
 		// The type of the message.
 		this.type = messageType;
+		
+		this.iteration = iteration;
 
 	}
 	
@@ -63,6 +69,14 @@ public abstract class AbstractMessageModel implements IMessage {
 	protected abstract MessageId generateMessageId();
 	
 	public abstract NodeId getSenderId();
+	
+	public AtomicLong getIteration() {
+		return iteration;
+	}
+
+	public void setIteration(AtomicLong iteration) {
+		this.iteration = iteration;
+	}
 		
 
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.strategy.AuthenticatedEchoBroadcastStrategy;
@@ -24,6 +25,8 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	private ExecutorService service;
 	
 	private final ArrayList<NodeId> nodeName;
+	
+	private volatile Integer networkLatency = 1;
 
 	private NetworkSimulator() {
 		nodeList = new ArrayList<INode>();
@@ -45,6 +48,8 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	private void simulateNetwork(int noOfNodes, String strategy, Integer faults) throws Exception {
 
+		service = Executors.newFixedThreadPool(noOfNodes,daemonThreadFactory);
+
 		// TODO remove these hardcoded values
 		strategy = "AuthenticatedEchoBroadcast";
 		faults = 2;
@@ -53,25 +58,31 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		// List to hold all the Threads
 		List<Thread> threads = new ArrayList<>();
 		Controller controller = new Controller();
-		// create nodes based on strategy
+		
+		//First create the leader node and dont submit it as it will trigger the broadcast
+		IBroadcastStrategy leaderBroadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
+		NodeId leaderNodeId = generateNodeId();
+		Node leaderNode = new Node(leaderBroadStrat,noOfNodes, faults, controller, leaderNodeId, true);
+		nodeList.add(leaderNode);
+		nodeName.add(leaderNodeId);
+		
+		// create other nodes based on strategy
 		try {
-			for (int i = 0; i < noOfNodes; i++) {
+			for (int i = 0; i < noOfNodes-1; i++) {
 				// Create an object of the strategy we are going to use
 				IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
 				// Create a node based on this strategy and add it to the list of nodes
 				NodeId nodeId = generateNodeId();
-				Node node = new Node(broadStrat,noOfNodes, faults, controller, nodeId);
+				Node node = new Node(broadStrat,noOfNodes, faults, controller, nodeId, false);
 				nodeList.add(node);
 				nodeName.add(nodeId);
-				// Create a new Thread for each node and start it
-				Thread nodeThread = new Thread(node);
-				nodeThread.setDaemon(true);
-				nodeThread.start();
-				// Add the Thread to the list
-				threads.add(nodeThread);
+				service.submit(node);
 			}
+			
+			//now submit the leader node to start the broadcasting
+			service.submit(leaderNode);
 
-			simulator.electLeader(); // Elect the leader
+			//simulator.electLeader(); // Elect the leader
 			long count =50;
 			while (count>0) {
 				Thread.sleep(100);
@@ -79,15 +90,24 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 				count--;
 			}
 			system_in_Simulation= false;
+			service.shutdown();
 		} finally {
-			// Optional: If you need to stop the Threads once the simulation is done
-			for (Thread thread : threads) {
-				thread.interrupt();
-			}
+			service.shutdown();
 			system_in_Simulation = false;
 		}
 	}
+	
+	
+	ThreadFactory daemonThreadFactory = new ThreadFactory() {
+	    private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
 
+	    @Override
+	    public Thread newThread(Runnable r) {
+	        Thread thread = defaultFactory.newThread(r);
+	        thread.setDaemon(true);
+	        return thread;
+	    }
+	};
 
 	@Override
 	public void startSimulation(int noOfNodes, String strategy, Integer faults) {
@@ -113,7 +133,7 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	public void electLeader() {
 		// TODO elect a legitimate leader
 		// System.out.println("no of nodes created :+"+nodeList.size());
-		nodeList.get(0).setLeader(true);
+		//nodeList.get(0).setLeader(true);
 	}
 
 	@Override
@@ -155,6 +175,17 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	protected synchronized NodeId generateNodeId() {
 		String idVal = String.valueOf(idCounter.getAndIncrement());
 		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
+	}
+
+	@Override
+	public void introduceLatencyInNetwork(int latency) {
+		this.networkLatency = latency * 1000;
+		
+	}
+	
+	@Override
+	public synchronized Integer getNetworkLatency() {
+		return networkLatency;
 	}
 
 }

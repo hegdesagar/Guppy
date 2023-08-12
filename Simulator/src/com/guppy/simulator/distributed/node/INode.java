@@ -9,7 +9,7 @@ public interface INode extends  Runnable {
 	
 	void publishMessage(IMessage msg) throws InterruptedException;
 
-	void setLeader(boolean isLeader);
+//	void setLeader(boolean isLeader);
 	
 //	public void stop();
 	

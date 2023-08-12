@@ -10,13 +10,13 @@ import com.guppy.simulator.common.typdef.NodeId;
 
 public class Message extends AbstractMessageModel {
 
-	public Message(MessageContent msgContent, MessageType messageType) {
+	/*public Message(NodeId nodeId, MessageContent msgContent, MessageType messageType) {
 		super(msgContent, messageType);
 
-	}
+	}*/
 
-	public Message(NodeId nodeId, MessageContent msgContent, MessageType messageType) {
-		super(msgContent, messageType);
+	public Message(NodeId nodeId, MessageContent msgContent, MessageType messageType,AtomicLong iteration) {
+		super(msgContent, messageType,iteration);
 		this.senderId = nodeId;
 	}
 

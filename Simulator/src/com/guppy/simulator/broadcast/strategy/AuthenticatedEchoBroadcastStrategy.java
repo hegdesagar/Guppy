@@ -2,6 +2,7 @@ package com.guppy.simulator.broadcast.strategy;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.broadcast.message.Message;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
+import com.guppy.simulator.common.Constants;
 import com.guppy.simulator.common.typdef.MessageContent;
+import com.guppy.simulator.common.typdef.MessageId;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
@@ -47,14 +50,14 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 				// If this node is the sender of the SEND message
 				sentEcho = true;
 				// Add the sender's own echo message in the echoMessages map
-				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
+				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO,message.getIteration());
 				echoMessages.add(echoMessage);
 				// Broadcast the original SEND message
 				broadcastMessage(message);
 			} else {
 				// If this node is not the sender of the SEND message
 				// Create a new ECHO message and broadcast it
-				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
+				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO,message.getIteration());
 				echoMessages.add(echoMessage);
 				broadcastMessage(echoMessage);
 			}
@@ -64,6 +67,7 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		}
 		int echoCount = getEchoCount(message);
 		if (echoCount > (N - f) / 2 && !delivered && isNodeLeader(nodeId)) {
+		//if (echoCount >5 && !delivered && isNodeLeader(nodeId)) { //test logic
 			this.delivered  = true;
 			LOGGER.info("Node : {}  Message delivered ", nodeId);
 			return true;
@@ -74,7 +78,7 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 	@Override
 	public boolean leaderBroadcast(MessageContent content) {
 		// Create a new SEND message with the given content
-		Message sendMessage = new Message(nodeId, content, MessageType.SEND);
+		Message sendMessage = new Message(nodeId, content, MessageType.SEND,generateIteration());
 		// Broadcast the SEND message to all other nodes
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			try {
@@ -117,7 +121,7 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 	
 	private void broadcastMessage(IMessage message) {
 		// Create a new ECHO message with the same content as the original message
-		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO);
+		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO,generateIteration());
 
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			try {
@@ -141,7 +145,24 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 				return node.isLeader();
 			}
 		}
+		/*if(this.nodeId.getId().equals(id.getId()))
+		{
+			return true;
+		}*/
 		return false;
+	}
+	
+	/**
+	 * Generates a unique message ID.
+	 * 
+	 * @return the generated message ID
+	 */
+	protected AtomicLong generateIteration() {
+
+		AtomicLong idCounter = new AtomicLong();
+
+		return idCounter;
+
 	}
 
 }
