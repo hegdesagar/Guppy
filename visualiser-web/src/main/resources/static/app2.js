@@ -30,17 +30,18 @@ window.onload = function() {
 		],
 
 		edges: [
-			{ data: { id: 'ab', weight: 1, source: 'a', target: 'b', arrow: 'triangle' } },
-			{ data: { id: 'ac', weight: 1, source: 'a', target: 'c', arrow: 'triangle' } },
-			{ data: { id: 'ba', weight: 1, source: 'b', target: 'a', arrow: 'triangle' } },
-			{ data: { id: 'bc', weight: 1, source: 'b', target: 'c', arrow: 'triangle' } },
-			{ data: { id: 'ca', weight: 1, source: 'c', target: 'a', arrow: 'triangle' } },
-			{ data: { id: 'cb', weight: 1, source: 'c', target: 'b', arrow: 'triangle' } }
+			{ data: { id: 'ab', weight: 1, source: 'a', target: 'b', arrow: 'triangle', label: 'ab' } },
+			{ data: { id: 'ac', weight: 1, source: 'a', target: 'c', arrow: 'triangle', label: 'ac' } },
+			{ data: { id: 'ba', weight: 1, source: 'b', target: 'a', arrow: 'triangle', label: 'ba' } },
+			{ data: { id: 'bc', weight: 1, source: 'b', target: 'c', arrow: 'triangle', label: '' } },
+			{ data: { id: 'ca', weight: 1, source: 'c', target: 'a', arrow: 'triangle', label: '' } },
+			{ data: { id: 'cb', weight: 1, source: 'c', target: 'b', arrow: 'triangle', label: '' } }
 		]
 	};
 	document.getElementById('mainalert').innerText = "Welcome to Node Broadcasting simulator";
 	drawGraph(elements, '#a');
 	highlightSpecificElements('a', 'b', 'ab', 'send');
+	cy.getElementById('a').addClass('leader');
 
 }
 
@@ -66,20 +67,35 @@ stompClient.onConnect = (frame) => {
 		const receivedData = JSON.parse(greeting.body);
 		const graphData = receivedData.elements;
 		//const stringData = JSON.stringify(graphData);
-		console.log(graphData);
+		console.log('graphdata', graphData);
 		drawGraph(graphData, '#node-0');
 		//highlightSpecificElements(graphData, graphData,graphData,graphData);
 	});
 
 	highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
-		console.log('Received highlight_nodes message', message);
-		const highlightEvent = JSON.parse(message.body);
 
-		const senderNode = highlightEvent.senderNode;
-		const receiverNode = highlightEvent.receiverNode;
-		const edgeHighlight = highlightEvent.edgeHighlight;
-		const eventType = highlightEvent.eventType;
-		const leadernode = highlightEvent.leaderNode;
+		const mqRecord = JSON.parse(message.body);
+		const senderNode = mqRecord.senderId;
+		const receiverNode = mqRecord.receiverId;
+		const edgeHighlight = mqRecord.edgeHighlight;
+		const eventType = mqRecord.eventType;
+		const leadernode = mqRecord.leaderNode;
+
+		console.log(edgeHighlight); // prints the eventType
+		// prints the timeStamp console.log(senderNode.id);if(senderNode) {
+		if (senderNode) {
+			console.log(senderNode.id);   // prints the id of the senderNode
+		} else {
+			console.log("senderNode is undefined!");
+		}
+
+		if (receiverNode) {
+			console.log(receiverNode.id); // prints the id of the receiverNode
+		} else {
+			console.log("receiverNode is undefined!");
+		}
+		console.log(eventType);
+
 
 		// First, reset the styles for all nodes and edges to their base styles
 		resetStyles();
@@ -88,12 +104,28 @@ stompClient.onConnect = (frame) => {
 		const styles = determineStyles(eventType);
 
 		// Apply styles based on whether the event refers to a sender or receiver
-		cy.getElementById(senderNode).style('background-color', 'orange');
-		cy.getElementById(receiverNode).style('background-color', 'blue');
-		cy.getElementById(leadernode).style('background-color', 'red')
+		cy.getElementById(senderNode.id).style('background-color', 'orange');
+		cy.getElementById(receiverNode.id).style('background-color', 'blue');
+		cy.getElementById(leadernode).addClass('leader');
+		//cy.getElementById(leadernode).addClass('leader');
+
+		//cy.getElementById(leadernode).style('background-color', 'red')
 
 		// Apply the edge styles
-		cy.getElementById(edgeHighlight).style(styles.edge);
+		//cy.getElementById(edgeHighlight).style(styles.edge);
+		cy.getElementById(edgeHighlight).style({
+			'line-color': 'pink',
+			'target-arrow-color': 'pink',
+			'label': eventType
+		});
+
+	});
+
+	cy.on('style', 'node', function(event) {
+		const node = event.target;
+		if (node.data('leader')) {
+			node.style('content', node.data('id') + '\nLeader');
+		}
 	});
 
 
@@ -121,17 +153,6 @@ function disconnect() {
 	started = false;
 	console.log("Disconnected");
 }
-
-
-$(document).ready(function() {
-	$('#implementation a').on('click', function(event) {
-		event.preventDefault();
-		$('#dropdownMenuButton').html($(this).text() + ' <span class="caret"></span>');
-		selectedImplementation = $(this).attr('id');
-	});
-
-});
-
 
 
 stompClient.onWebSocketError = (error) => {
@@ -250,16 +271,21 @@ function drawGraph(elements, rootNode) {
 		style: cytoscape.stylesheet()
 			.selector('node')
 			.style({
-				'content': 'data(id)'
+				'content': 'data(id)',
+				'text-wrap': 'wrap',
+				'text-max-width': 80 // adjust as per your needs
+				//'text-valign': 'top'
+
 			})
 			.selector('edge')
 			.style({
-				//'curve-style': 'straight',
-				'curve-style': 'bezier',
+				'curve-style': 'unbundled-bezier',
 				'target-arrow-shape': 'triangle',
 				'width': 4,
 				'line-color': '#ddd',
-				'target-arrow-color': '#ddd'
+				'target-arrow-color': '#ddd',
+				'label': 'data(label)',  // This line adds the label to  edge
+				'text-rotation': 'autorotate'  // This ensures that the text rotation matches the edge direction
 			})
 			.selector('.highlighted')
 			.style({
@@ -268,6 +294,12 @@ function drawGraph(elements, rootNode) {
 				'target-arrow-color': '#61bffc',
 				'transition-property': 'background-color, line-color, target-arrow-color',
 				'transition-duration': '0.5s'
+			})
+			.selector('.leader')  // define the leader node style
+			.style({
+				'background-color': '#66ff66',
+				'border-width': '4px',
+				'border-color': '#ff3333'
 			}),
 
 		elements: elements, // use the incoming data to set the elements
@@ -279,48 +311,69 @@ function drawGraph(elements, rootNode) {
 			roots: rootNode,
 			padding: 10
 		},
+	});
 
+	cy.contextMenus({
+		menuItems: [{
+			id: 'inject-fault',
+			content: 'Inject Fault',
+			selector: 'node', // applies to nodes only
+			onClickFunction: function(event) {
+				var target = event.target || event.cyTarget;
+				injectFault(target);
+			},
+			hasTrailingDivider: true
+		}],
+		menuItemClasses: ['custom-menu-item'],
+		contextMenuClasses: ['custom-context-menu']
 	});
 
 }
 
-	function determineStyles(eventType) {
-		const styles = {
-			node: {},
-			edge: {}
-		};
+function injectFault(node) {
+	// Implement your fault-injection logic here
+	console.log("Injecting fault to node:", node.id());
+	// Any other logic or AJAX calls to backend can be implemented here.
+}
 
-		switch (eventType) {
-			case 'Delivered':
-				styles.edge = {
-					'line-color': 'green',
-					'target-arrow-color': 'green'
-				};
-				break;
-			case 'Echo':
-				styles.edge = {
-					'line-color': 'blue',
-					'target-arrow-color': 'blue'
-				};
-				break;
-			case 'Sent':
-				styles.edge = {
-					'line-color': 'red',
-					'target-arrow-color': 'red'
-				};
-				break;
-		}
+function determineStyles(eventType) {
+	const styles = {
+		node: {},
+		edge: {}
+	};
 
-		return styles;
+	switch (eventType) {
+		case 'Delivered':
+			styles.edge = {
+				'line-color': 'green',
+				'target-arrow-color': 'green'
+			};
+			break;
+		case 'Echo':
+			styles.edge = {
+				'line-color': 'blue',
+				'target-arrow-color': 'blue'
+			};
+			break;
+		case 'Sent':
+			styles.edge = {
+				'line-color': 'red',
+				'target-arrow-color': 'red'
+			};
+			break;
 	}
 
-	function resetStyles() {
-		cy.nodes().style({
-			'background-color': '',  // The base background color of your nodes
-		});
+	return styles;
+}
 
-		cy.edges().style({
-			'line-color': '#ddd',   // The base line color of your edges
-			'target-arrow-color': '#ddd',   // The base arrow color of your edges
-		});
-	}
+function resetStyles() {
+	cy.nodes().style({
+		'background-color': '',  // The base background color of your nodes
+	});
+
+	cy.edges().style({
+		'line-color': '#ddd',   // The base line color of your edges
+		'target-arrow-color': '#ddd',   // The base arrow color of your edges
+		'label' : '',
+	});
+}
