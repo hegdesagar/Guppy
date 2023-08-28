@@ -1,6 +1,6 @@
 package com.example.messagingstompwebsocket;
 
-public class HelloMessage {
+/*public class HelloMessage {
 
 	private String name;
 
@@ -18,4 +18,4 @@ public class HelloMessage {
 	public void setName(String name) {
 		this.name = name;
 	}
-}
+}*/

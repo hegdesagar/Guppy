@@ -12,6 +12,9 @@
 	rel="stylesheet"
 	integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
 	crossorigin="anonymous">
+<link rel="stylesheet"
+	href="https://unpkg.com/cytoscape-context-menus@3.0.1/cytoscape-context-menus.css" />
+
 
 <title>Guppy Simulation</title>
 </head>
@@ -99,12 +102,11 @@
 				</div>
 			</div>
 		</div>
-
 		<div class="card">
 			<div class="container-fluid card-body">
-				<label for="customRange1" class="form-label">Timeline</label> <input
-					type="range" class="form-range" id="customRange1" min="0" max="100"
-					value="0"> <span id="rangeValue">0</span>
+				<label for="customRange1" class="form-label">Latency</label> <input
+					type="range" class="form-range" id="customRange1" min="100"
+					max="5000" value="100"> <span id="rangeValue">100</span>
 			</div>
 		</div>
 
@@ -132,6 +134,9 @@
 		src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 	<script
 		src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.25.0/cytoscape.min.js"></script>
+	<script
+		src='https://unpkg.com/cytoscape-context-menus@3.0.1/cytoscape-context-menus.js'></script>
+
 	<script src="/app2.js"></script>
 </body>
 </html>

@@ -8,4 +8,11 @@
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <!-- Reduce log level for Kafka -->
+    <logger name="org.apache.kafka.clients" level="ERROR"/>
+    <logger name="org.apache.kafka.common" level="ERROR"/>
+    <logger name="o.a.k.c.c.internals" level="ERROR"/>
+    <logger name="o.a.k.clients.producer" level="ERROR"/>
+
 </configuration>

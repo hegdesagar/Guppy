@@ -1,5 +1,6 @@
 package com.guppy.simulator.distributed.node;
 
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -7,8 +8,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
+import com.guppy.simulator.broadcast.message.Message;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.broadcast.strategy.AuthenticatedEchoBroadcastStrategy;
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
@@ -16,8 +17,6 @@ import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.Controller;
 import com.guppy.simulator.core.NetworkSimulator;
-import com.guppy.simulator.producermq.KafkaMessageProducer;
-//import com.guppy.simulator.rabbitmq.service.RabbitMQService;
 
 /**
  * 
@@ -28,7 +27,7 @@ public class Node implements INode {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Node.class);
 
-	private int simulationCount = 0;
+	//private int simulationCount = 0;
 
 	protected NodeId nodeId;
 
@@ -43,17 +42,15 @@ public class Node implements INode {
 	private int F;
 
 	private final Controller controller;
-
-	// private static volatile RabbitMQService rabbitMQService;
-
-	private final KafkaMessageProducer producer;
+	
+	public boolean isInterrupt = false;
+	
 
 	/*
 	 * Constructor for node initialization
 	 */
 	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller, NodeId _nodeId, boolean isLeader)
 			throws Exception {
-		// this.nodeId = generateNodeId();
 		this.nodeId = _nodeId;
 		_strategy.setNodeId(this.nodeId);
 		this.strategy = _strategy;
@@ -61,83 +58,77 @@ public class Node implements INode {
 		this.F = _F;
 		this.N = _N;
 		this.controller = controller;
-		this.producer = new KafkaMessageProducer();
 		this.isLeader = isLeader;
 
 	}
 
 	@Override
 	public void run() {
-
-		simulationCount++; // TODO
+		//simulationCount++; // TODO
+		int noMessageCount = 0;
 		if (isLeader) {
 			strategy.leaderBroadcast(new MessageContent("Hello World!!")); // TODO this needs to be better
 		}
 
-		while (NetworkSimulator.getInstance().isSystemInSimulation() && simulationCount < 2) {
+		while (NetworkSimulator.getInstance().isSystemInSimulation()) {
+			
 			try {
 				if (controller.isResetInProgress() && !isLeader()) { // Only non-leader nodes reset here
 
-					strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
-
-					strategy.setNodeId(nodeId);
+					//strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
+					//strategy.setNodeId(nodeId);
+					strategy.reset();
 					messageQueue.clear();// Added this to clear the queue once the message is delivered
 					controller.decrementLatch();
 					controller.awaitUntillLatch();
 				}
 
-				IMessage message = messageQueue.poll(1000, TimeUnit.MILLISECONDS);
-				if (message != null) {
+				IMessage message = messageQueue.poll(1000+ NetworkSimulator.getInstance().getNetworkLatency(),
+						TimeUnit.MILLISECONDS);
+				
+				if(isInterrupt) {
+					messageQueue.clear();
+					strategy.reset();
+				}
+				if (message != null && !isInterrupt) {
 					// Process the message
 					if (strategy.executeStrategy(message)) {
 						if (isLeader()) { // Leader initiates reset
 							controller.initiateReset(N - 1);
 							System.out.println(" The Message was delivered by node leader : " + nodeId);
-							System.out.println("Node :" + nodeId + " is elected as leader!!!.... and Simulation Count :"
-									+ simulationCount);
-							strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
-							strategy.setNodeId(nodeId);
+							//System.out.println("Node :" + nodeId + " is elected as leader!!!.... and Simulation Count :"
+							//		+ simulationCount);
+							//strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
+							//strategy.setNodeId(nodeId);
+							strategy.reset();
 							messageQueue.clear();// Added this to clear the queue once the message is delivered
 							controller.awaitLatchAndReset();
-							// setLeader(true); // Start Broadcast again
-							// Publlish the Delivered event to the queue
-							BroadcastEvent deliverEvent = new BroadcastEvent(message.getSenderId(), nodeId,
-									MessageType.DELIVERED, NetworkSimulator.getInstance().getNodeName());
-							producer.produce(deliverEvent);
 
-							simulationCount++;
+							//simulationCount++;
 							// start broadcasting again
 							strategy.leaderBroadcast(new MessageContent("Hello World!!"));
 						}
-					} else {
-						// broadcast the message to the RabbitMQ
-						BroadcastEvent event = new BroadcastEvent(message.getSenderId(), nodeId, message.getType(),
-								NetworkSimulator.getInstance().getNodeName());
-						// Publish the event that a message has arrived
-						producer.produce(event);
-					}
+					} 
+				}else if(isLeader() && message == null){
+					//The message is not delivered due to faulty nodes
+					controller.initiateReset(N - 1);
+					System.out.println(" The Message was NOT delivered by node leader : ");
+					strategy.reset();
+					messageQueue.clear();// Added this to clear the queue once the message is delivered
+					controller.awaitLatchAndReset();
+					strategy.leaderBroadcast(new MessageContent("Hello World!!"));
 				}
-			} catch (Exception e) {
+			}catch (InterruptedException e) {
+				System.out.println("Interrupted : "+nodeId);
+			} 
+			catch (Exception e) {
 				System.out.println("Exception Occurred here");
 				e.printStackTrace();
 			}
 		}
-		System.out.println(" Exiting node run method & simulation Count :" + simulationCount);
-		close(); // Close the Kafka connection
+		System.out.println(" Exiting node run method & simulation Count :" +nodeId);
+		strategy.close(); // Close the Kafka connection
 	}
-
-	/*
-	 * Sets a node as the leader and starts broadcasting message
-	 */
-	/*
-	 * public void setLeader(boolean isLeader) { if (simulationCount < 2) {
-	 * simulationCount++; // TODO System.out.println( "Node :" + nodeId +
-	 * " is elected as leader!!!.... and Simulation Count :" + simulationCount);
-	 * this.isLeader = isLeader; strategy.leaderBroadcast(new
-	 * MessageContent("Hello World!!")); // TODO this needs to be better }
-	 * 
-	 * }
-	 */
 
 	/*
 	 * public BlockingQueue<IMessage> getMessageQueue() { return messageQueue; }
@@ -159,10 +150,11 @@ public class Node implements INode {
 		return isLeader;
 	}
 
-	public void close() {
-		if (producer != null) {
-			producer.close();
-		}
+
+	@Override
+	public void stop() {
+
 	}
+	
 
 }

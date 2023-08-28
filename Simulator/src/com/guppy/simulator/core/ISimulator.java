@@ -35,6 +35,14 @@ public interface ISimulator {
 	public void introduceLatencyInNetwork(int timeline);
 	
 	public Integer getNetworkLatency();
+
+	public int getNoOfFaultNodesInjected();
+
+	public boolean flood(String nodeId);
+
+	public boolean dropMessage(String nodeId);
+
+	public boolean alterMessage(String nodeId);
 	
 }
 

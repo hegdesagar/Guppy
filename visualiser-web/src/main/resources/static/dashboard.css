@@ -143,3 +143,27 @@ footer {
 	background-color: #146C94;
 }
 
+
+.custom-menu-item {
+    /* Apply Bootstrap button styles */
+    background-color: #007bff;
+    border: 1px solid #007bff;
+    color: #fff;
+    text-align: center;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+
+    /* Optional: Any other custom styles */
+}
+
+.custom-menu-item:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.custom-context-menu {
+    /* Apply Bootstrap-like styles */
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    border-radius: .25rem;
+}
+

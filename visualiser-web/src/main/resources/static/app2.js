@@ -38,6 +38,7 @@ window.onload = function() {
 			{ data: { id: 'cb', weight: 1, source: 'c', target: 'b', arrow: 'triangle', label: '' } }
 		]
 	};
+	resetStyles();
 	document.getElementById('mainalert').innerText = "Welcome to Node Broadcasting simulator";
 	drawGraph(elements, '#a');
 	highlightSpecificElements('a', 'b', 'ab', 'send');
@@ -72,53 +73,97 @@ stompClient.onConnect = (frame) => {
 		//highlightSpecificElements(graphData, graphData,graphData,graphData);
 	});
 
+
 	highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
-
-		const mqRecord = JSON.parse(message.body);
-		const senderNode = mqRecord.senderId;
-		const receiverNode = mqRecord.receiverId;
-		const edgeHighlight = mqRecord.edgeHighlight;
-		const eventType = mqRecord.eventType;
-		const leadernode = mqRecord.leaderNode;
-
-		console.log(edgeHighlight); // prints the eventType
-		// prints the timeStamp console.log(senderNode.id);if(senderNode) {
-		if (senderNode) {
-			console.log(senderNode.id);   // prints the id of the senderNode
-		} else {
-			console.log("senderNode is undefined!");
-		}
-
-		if (receiverNode) {
-			console.log(receiverNode.id); // prints the id of the receiverNode
-		} else {
-			console.log("receiverNode is undefined!");
-		}
-		console.log(eventType);
-
-
 		// First, reset the styles for all nodes and edges to their base styles
-		resetStyles();
+		hideAllEdges();
+		let mqRecordList = JSON.parse(message.body); // This will now be an array
+		let nodesToHighlight = []; // Collect nodes to be highlighted
+		let edgesToHighlight = []; // Collect edges to be highlighted
+		let leadersToHighlight = []; // Collect leader nodes
 
-		// Get the styles determined by the event type
-		const styles = determineStyles(eventType);
+		console.log('New list of record------------------------------------------------');
+		// Process each MQRecord in the array
+		mqRecordList.forEach(mqRecord => {
+			const senderNode = mqRecord.senderId;
+			const receiverNode = mqRecord.receiverId;
+			const edgeHighlight = mqRecord.edgeHighlight;
+			const eventType = mqRecord.eventType;
+			const leadernode = mqRecord.leaderNode;
 
-		// Apply styles based on whether the event refers to a sender or receiver
-		cy.getElementById(senderNode.id).style('background-color', 'orange');
-		cy.getElementById(receiverNode.id).style('background-color', 'blue');
-		cy.getElementById(leadernode).addClass('leader');
-		//cy.getElementById(leadernode).addClass('leader');
+			console.log("EdgeHightlight :", edgeHighlight); // prints the eventType
+			// prints the timeStamp console.log(senderNode.id);if(senderNode) 
+			if (senderNode) {
+				//console.log("Sender Node : ", senderNode.id);   // prints the id of the senderNode
+			} else {
+				//console.log("senderNode is undefined!");
+			}
 
-		//cy.getElementById(leadernode).style('background-color', 'red')
+			if (receiverNode) {
+				//console.log("Receiver Node : ", receiverNode.id); // prints the id of the receiverNode
+			} else {
+				//console.log("receiverNode is undefined!");
+			}
+			//console.log("event type : ", eventType);
+			//console.log("leader Node : ", leadernode);
 
-		// Apply the edge styles
-		//cy.getElementById(edgeHighlight).style(styles.edge);
-		cy.getElementById(edgeHighlight).style({
-			'line-color': 'pink',
-			'target-arrow-color': 'pink',
-			'label': eventType
+
+			// Get the styles determined by the event type
+			const styles = determineStyles(eventType);
+
+			// Apply styles based on whether the event refers to a sender or receiver
+			if (senderNode) {
+				nodesToHighlight.push({ id: senderNode.id, event: eventType });
+			}
+			if (receiverNode) {
+				nodesToHighlight.push({ id: receiverNode.id, event: eventType });
+			}
+			if (edgeHighlight) {
+				edgesToHighlight.push({ id: edgeHighlight, event: eventType });
+			}
+			if (leadernode) {
+				leadersToHighlight.push(leadernode);
+			}
+
 		});
 
+		// Apply styles to nodes
+		nodesToHighlight.forEach(node => {
+			//console.log("Node : ", node);
+			if (node.event == 'SEND') {
+				cy.getElementById(node.id).style('background-color', 'red');
+			}
+			if (node.event == 'ECHO') {
+				cy.getElementById(node.id).style('background-color', 'blue');
+			}
+
+		});
+
+		// Apply styles to edges
+		edgesToHighlight.forEach(edge => {
+			//cy.getElementById(edge).style('line-color', 'pink');
+			cy.getElementById(edge.id).style({
+				'line-color': 'pink',
+				'target-arrow-color': 'pink',
+				'label': edge.event
+			});
+			const edgeConstant = cy.getElementById(edge.id);
+			edgeConstant.style('line-color', '#61bffc');
+			edgeConstant.style('target-arrow-color', '#61bffc');
+			edgeConstant.show();
+		});
+
+		// Apply styles to leaders
+		leadersToHighlight.forEach(leader => {
+			cy.getElementById(leader).addClass('leader');
+		});
+
+
+	});
+
+	alertSubscription = stompClient.subscribe('/topic/alert_updates', (alertMessage) => {
+		console.log('Received alert update', alertMessage);
+		document.getElementById('mainalert').innerText = alertMessage.body;
 	});
 
 	cy.on('style', 'node', function(event) {
@@ -129,10 +174,6 @@ stompClient.onConnect = (frame) => {
 	});
 
 
-	alertSubscription = stompClient.subscribe('/topic/alert_updates', (alertMessage) => {
-		console.log('Received alert update', alertMessage);
-		document.getElementById('mainalert').innerText = alertMessage.body;
-	});
 };
 
 function disconnect() {
@@ -200,8 +241,11 @@ function publish() {
 
 $("#SimulationButton").click(function() {
 	if ($(this).text() == "Start") {
+		connect();
 		$(this).text("Stop");
 	} else {
+		stopSimulation();
+		disconnect();
 		$(this).text("Start");
 	}
 });
@@ -242,12 +286,12 @@ function updateTimeline(timelineValue) {
 	
 }*/
 
-$(function() {
+/*$(function() {
 	$("form").on('submit', (e) => e.preventDefault());
 	$("#SimulationButton").click(() => connect());
 	//$("#disconnect").click(() => disconnect());
 	//$("#send").click(() => sendName());
-});
+});*/
 
 
 function highlightSpecificElements(nodeSender, nodeReceiver, edgeId, label) {
@@ -255,9 +299,11 @@ function highlightSpecificElements(nodeSender, nodeReceiver, edgeId, label) {
 	cy.getElementById(nodeSender).style('background-color', '#61bffc');
 	cy.getElementById(nodeReceiver).style('background-color', '#61bffc');
 
-	// Highlight the edge
-	cy.getElementById(edgeId).style('line-color', '#61bffc');
-	cy.getElementById(edgeId).style('target-arrow-color', '#61bffc');
+	// Highlight and show the edge
+	const edge = cy.getElementById(edgeId);
+	edge.style('line-color', '#61bffc');
+	edge.style('target-arrow-color', '#61bffc');
+	edge.show();
 }
 
 
@@ -277,9 +323,9 @@ function drawGraph(elements, rootNode) {
 				//'text-valign': 'top'
 
 			})
-			.selector('edge')
+			.selector('edge[label]')
 			.style({
-				'curve-style': 'unbundled-bezier',
+				'curve-style': 'straight',
 				'target-arrow-shape': 'triangle',
 				'width': 4,
 				'line-color': '#ddd',
@@ -315,25 +361,113 @@ function drawGraph(elements, rootNode) {
 
 	cy.contextMenus({
 		menuItems: [{
-			id: 'inject-fault',
-			content: 'Inject Fault',
+			id: 'Crash',
+			content: 'Crash Node',
 			selector: 'node', // applies to nodes only
 			onClickFunction: function(event) {
 				var target = event.target || event.cyTarget;
 				injectFault(target);
 			},
 			hasTrailingDivider: true
-		}],
+		},
+		{
+            id: 'Flood',
+            content: 'Flood',
+            selector: 'node', // applies to nodes only
+            onClickFunction: function(event) {
+                var target = event.target || event.cyTarget;
+                flood(target);
+            },
+            hasTrailingDivider: true
+        },
+        {
+            id: 'Drop',
+            content: 'Drop Messages',
+            selector: 'node', // applies to nodes only
+            onClickFunction: function(event) {
+                var target = event.target || event.cyTarget;
+                dropMessage(target);
+            },
+            hasTrailingDivider: true
+        },
+         {
+            id: 'Alter',
+            content: 'Alter Message Content',
+            selector: 'node', // applies to nodes only
+            onClickFunction: function(event) {
+                var target = event.target || event.cyTarget;
+                alterMessage(target);
+            }
+        }
+        
+        ],
 		menuItemClasses: ['custom-menu-item'],
 		contextMenuClasses: ['custom-context-menu']
 	});
 
+	hideAllEdges();
+
 }
+
+function hideAllEdges() {
+    let edges = cy.edges();
+
+    edges.hide();
+
+    // Applying default styles to all edges
+    cy.style()
+      .selector('edge')
+        .style({
+          'line-color': '#ddd',
+          'width': '2px',
+          'curve-style': 'bezier', 
+          'target-arrow-shape': 'triangle',
+          'target-arrow-color': '#ddd'
+        })
+      .update();
+}
+
+
 
 function injectFault(node) {
 	// Implement your fault-injection logic here
-	console.log("Injecting fault to node:", node.id());
-	// Any other logic or AJAX calls to backend can be implemented here.
+	console.log("Crashin Node:", node.id());
+	stompClient.publish({
+		destination: "/app/inject_fault",
+		body: node.id()
+	});
+}
+
+function flood(node){
+	console.log("Sending random messge from Node:", node.id());
+	stompClient.publish({
+		destination: "/app/flood",
+		body: node.id()
+	});
+}
+
+function dropMessage(node){
+	console.log("Dropping some message from node:", node.id());
+	stompClient.publish({
+		destination: "/app/drop_message",
+		body: node.id()
+	});
+}
+
+function alterMessage(node){
+	console.log("Altering the content of message:", node.id());
+	stompClient.publish({
+		destination: "/app/alter_message",
+		body: node.id()
+	});
+}
+
+
+function stopSimulation(){
+	console.log("Stopping the simulation ");
+	stompClient.publish({
+		destination: "/app/stop_simulation"
+	});
 }
 
 function determineStyles(eventType) {
@@ -367,13 +501,17 @@ function determineStyles(eventType) {
 }
 
 function resetStyles() {
-	cy.nodes().style({
+
+	//cy.edges().hide();
+
+
+	/*cy.nodes().style({
 		'background-color': '',  // The base background color of your nodes
 	});
 
 	cy.edges().style({
 		'line-color': '#ddd',   // The base line color of your edges
 		'target-arrow-color': '#ddd',   // The base arrow color of your edges
-		'label' : '',
-	});
+		'label': '',
+	});*/
 }

@@ -1,6 +1,10 @@
 package com.guppy.simulator.distributed.node;
 
+import java.util.List;
+
+import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
+import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
 import com.guppy.simulator.common.typdef.NodeId;
 
 public interface INode extends  Runnable {
@@ -11,12 +15,16 @@ public interface INode extends  Runnable {
 
 //	void setLeader(boolean isLeader);
 	
-//	public void stop();
+	public void stop();
 	
 	public NodeId getNodeId();
 	
 	public boolean isLeader();
+	
+//	List<BroadcastEvent> getBroadcastEventsList();
 
+//	void clearBroadcastEventsList();
+	
 //	void reset();
 
 //	Boolean isDelivered();

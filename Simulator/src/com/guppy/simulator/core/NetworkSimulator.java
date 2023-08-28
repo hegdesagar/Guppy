@@ -1,9 +1,13 @@
 package com.guppy.simulator.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -27,11 +31,16 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	private final ArrayList<NodeId> nodeName;
 	
 	private volatile Integer networkLatency = 1;
+	
+	private Integer faultNodesInjected =0;
+	
+	//private Map<NodeId, Future<?>> futureList = new HashMap<>();
 
 	private NetworkSimulator() {
 		nodeList = new ArrayList<INode>();
 		system_in_Simulation = true;
 		nodeName = new ArrayList<NodeId>();
+		this.networkLatency = 2000;
 	}
 
 	public static ISimulator getInstance() {
@@ -56,7 +65,7 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		// TODO end
 
 		// List to hold all the Threads
-		List<Thread> threads = new ArrayList<>();
+		//List<Thread> threads = new ArrayList<>();
 		Controller controller = new Controller();
 		
 		//First create the leader node and dont submit it as it will trigger the broadcast
@@ -65,6 +74,7 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		Node leaderNode = new Node(leaderBroadStrat,noOfNodes, faults, controller, leaderNodeId, true);
 		nodeList.add(leaderNode);
 		nodeName.add(leaderNodeId);
+		
 		
 		// create other nodes based on strategy
 		try {
@@ -76,22 +86,25 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 				Node node = new Node(broadStrat,noOfNodes, faults, controller, nodeId, false);
 				nodeList.add(node);
 				nodeName.add(nodeId);
-				service.submit(node);
+				Future<?> nodeFuture = service.submit(node);
+				//futureList.put(nodeId, nodeFuture);
 			}
 			
 			//now submit the leader node to start the broadcasting
-			service.submit(leaderNode);
+			
+			Future<?> nodeFuture = service.submit(leaderNode);
+			//futureList.put(leaderNodeId, nodeFuture);
 
 			//simulator.electLeader(); // Elect the leader
-			long count =50;
-			while (count>0) {
-				Thread.sleep(100);
-				// Keep running
-				count--;
-			}
-			system_in_Simulation= false;
-			service.shutdown();
-		} finally {
+			//long count =50;
+			//while (count>0) {
+			//	Thread.sleep(1000);
+			//	// Keep running
+			//	count--;
+			//}
+			//system_in_Simulation= false;
+			//service.shutdown();
+		} catch(Exception e) {
 			service.shutdown();
 			system_in_Simulation = false;
 		}
@@ -138,9 +151,17 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	@Override
 	public boolean injectFault(String nodeId) {
-		for (INode node : nodeList) {
-			if (node.getNodeId().equals(nodeId)) {
-				// node.stop();
+		//Iterate over all the node and if found interrupt the node
+		/*for(Entry<NodeId, Future<?>> entry : futureList.entrySet()) {
+			if(entry.getKey().getId().equals(nodeId)) {
+				entry.getValue().cancel(true);
+				return true;
+			}
+		}*/
+		for(INode node: nodeList) {
+			if(node.getNodeId().getId().equals(nodeId)) {
+				((Node)node).isInterrupt = true;
+				this.faultNodesInjected ++;
 				return true;
 			}
 		}
@@ -179,13 +200,33 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	@Override
 	public void introduceLatencyInNetwork(int latency) {
-		this.networkLatency = latency * 1000;
-		
+			this.networkLatency = latency;
 	}
 	
 	@Override
 	public synchronized Integer getNetworkLatency() {
 		return networkLatency;
+	}
+
+	@Override
+	public int getNoOfFaultNodesInjected() {
+		// TODO Auto-generated method stub
+		return faultNodesInjected;
+	}
+
+	@Override
+	public boolean flood(String nodeId) {
+		return false;
+	}
+
+	@Override
+	public boolean dropMessage(String nodeId) {
+		return false;
+	}
+
+	@Override
+	public boolean alterMessage(String nodeId) {
+		return false;
 	}
 
 }

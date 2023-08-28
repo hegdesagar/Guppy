@@ -1,6 +1,6 @@
 package com.example.messagingstompwebsocket;
 
-public class Greeting {
+/*public class Greeting {
 
 	private String content;
 
@@ -15,4 +15,4 @@ public class Greeting {
 		return content;
 	}
 
-}
+}*/
