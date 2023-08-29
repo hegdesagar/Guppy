@@ -5,6 +5,7 @@ import java.util.List;
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
+import com.guppy.simulator.producermq.KafkaMessageProducer;
 
 public interface IBroadcastStrategy {
 
@@ -19,6 +20,16 @@ public interface IBroadcastStrategy {
 	void close();
 
 	void reset();
+
+	void flood();
+
+	void startDropping();
+
+	void startMessageTamper();
+
+	void publishNotDelivered(IMessage message);
+
+	void setMQProducer(KafkaMessageProducer producer);
 
 	//void reset();
 

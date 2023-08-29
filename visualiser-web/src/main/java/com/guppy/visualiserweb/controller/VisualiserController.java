@@ -86,48 +86,41 @@ public class VisualiserController {
 		// start polling for messages from kafka
 		KafkaMessageConsumer consumer = new KafkaMessageConsumer();
 		try {
-			while (true) {
-			    Iterable<ConsumerRecord<String, String>> records = consumer.consume();
-			    for (ConsumerRecord<String, String> record : records) {
-			        //System.out.printf("Consumed record with key %s and value %s%n", record.key(), record.value());
-			        
-			        try {
-			            ObjectMapper objectMapper = new ObjectMapper();
-			            List<MQRecord> incomingRecords = objectMapper.readValue(record.value(), new TypeReference<List<MQRecord>>() {});
-			            
-			            // List to store processed records
-			            List<MQRecord> processedRecords = new ArrayList<>();
+		    while (true) {
+		        Iterable<ConsumerRecord<String, String>> records = consumer.consume();
+		        for (ConsumerRecord<String, String> record : records) {
+		            
+		            try {
+		                ObjectMapper objectMapper = new ObjectMapper();
+		                // Deserialize the single MQRecord directly
+		                MQRecord mqrecord = objectMapper.readValue(record.value(), MQRecord.class);
+		                
+		                if (mqrecord.getSenderId().getId().equals(mqrecord.getReceiverId().getId()) 
+		                		&& !mqrecord.getEventType().equals("DELIVERED") 
+		                		&& !mqrecord.getEventType().equals("NOTDELIVERED")) {
+		                    continue; // Skip processing
+		                }
 
-			            for (MQRecord mqrecord : incomingRecords) {
-			                if (mqrecord.getSenderId().getId().equals(mqrecord.getReceiverId().getId())) {
-			                    continue; // Skip processing
-			                }
+		                mqrecord.setLeaderNode("node-0");
+		                String constructedEdge = Strings.concat(mqrecord.getSenderId().getId(), mqrecord.getReceiverId().getId());
+		                mqrecord.setEdgeHighlight(constructedEdge);
 
-			                mqrecord.setLeaderNode("node-0");
-			                String constructedEdge = Strings.concat(mqrecord.getSenderId().getId(), mqrecord.getReceiverId().getId());
-			                mqrecord.setEdgeHighlight(constructedEdge);
-
-			               // System.out.println(mqrecord.getSenderId().getId());  // Will print "node-0"
-
-			                // Add the processed record to the list
-			                processedRecords.add(mqrecord);
-			            }
-
-			            //publish it to front-end
-			            if (!processedRecords.isEmpty()) {
-			                template.convertAndSend("/topic/highlight_nodes", processedRecords);
-			            }
-			            // Sleep for timeline
-			            //Thread.sleep(500); // TODO: You might want to adjust or remove this sleep later
-			        } catch (Exception e) {
-			            e.printStackTrace();
-			        }
-			    }
-			}
+		                // Publish the single processed record to the front-end
+		                template.convertAndSend("/topic/highlight_nodes", mqrecord);
+		                
+		                // Sleep for timeline (adjust or remove as needed)
+		                // Thread.sleep(500);
+		                
+		            } catch (Exception e) {
+		                e.printStackTrace();
+		            }
+		        }
+		    }
 		} finally {
 		    consumer.close();
 		    System.out.println("Closing");
 		}
+
 
 
 		//System.out.println("Returning from simulation:");

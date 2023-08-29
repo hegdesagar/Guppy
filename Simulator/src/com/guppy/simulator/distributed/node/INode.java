@@ -20,6 +20,14 @@ public interface INode extends  Runnable {
 	public NodeId getNodeId();
 	
 	public boolean isLeader();
+
+	void setInterrupt(boolean b);
+
+	void injectFlooding(boolean b);
+
+	void injectDropMessage(boolean b);
+
+	void injectMessageTampering(boolean b);
 	
 //	List<BroadcastEvent> getBroadcastEventsList();
 

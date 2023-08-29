@@ -9,7 +9,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper; // You'll need the Jackson library for JSON serialization
+import com.fasterxml.jackson.databind.ObjectMapper; 
 import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.core.NetworkSimulator;
 
@@ -24,27 +24,27 @@ public class KafkaMessageProducer {
 		properties.put("bootstrap.servers", "localhost:29092");
 		properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 		properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		properties.put("max.request.size", 2097152); //set the size to 2MB
+		properties.put("max.request.size", 2097152); // set the size to 2MB
 		this.producer = new KafkaProducer<>(properties);
 	}
 
-	public void produce(List<BroadcastEvent> event) {
+	/*public void produce(List<BroadcastEvent> events) {
+		for (BroadcastEvent event : events) {
+			produce(event);  // Call the single event produce method for each event
+		}
+	}*/
+	
+	public void produce(BroadcastEvent event) {
 		try {
 			String key = String.valueOf(idCounter++);
 			String eventAsJson = mapper.writeValueAsString(event);
 			producer.send(new ProducerRecord<>("BROADCAST-CHANNEL", key, eventAsJson));
-			//Latency
-			Thread.sleep(NetworkSimulator.getInstance().getNetworkLatency()); 
-			//System.out.println("Message with ID: " + key + " sent successfully!");
+			// Latency
+			Thread.sleep(NetworkSimulator.getInstance().getNetworkLatency());
+			
 		} catch (JsonProcessingException | InterruptedException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public void produce(BroadcastEvent event) {
-	    List<BroadcastEvent> events = new ArrayList<>();
-	    events.add(event);
-	    produce(events);
 	}
 
 	public void close() {
@@ -52,6 +52,6 @@ public class KafkaMessageProducer {
 			producer.close();
 		}
 	}
-
 }
+
 

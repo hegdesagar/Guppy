@@ -44,12 +44,21 @@ window.onload = function() {
 	highlightSpecificElements('a', 'b', 'ab', 'send');
 	cy.getElementById('a').addClass('leader');
 
+	//event box
+	//const eventText = 'a' + '->' + 'c' + '\n' + 'SEND';
+	const eventText = 'node-0 ' + '->' + ' node-2' + '\n' + 'SEND';
+	addEvent(eventText, 'red');
 }
 
 // define the cy variable without initializing
 let cy = null;
 
 let started = false;
+
+
+//Crashed Nodes
+const nodesCrashed = new Array();
+const nodesByzantine = new Array();
 
 //Websocket defination START
 const stompClient = new StompJs.Client({
@@ -60,6 +69,7 @@ let simulateDataSubscription;
 let highlightNodesSubscription;
 // Subscription to alert_updates topic
 let alertSubscription;
+let errorSubscription;
 
 stompClient.onConnect = (frame) => {
 	console.log('Connected: ' + frame);
@@ -69,6 +79,9 @@ stompClient.onConnect = (frame) => {
 		const graphData = receivedData.elements;
 		//const stringData = JSON.stringify(graphData);
 		console.log('graphdata', graphData);
+		const alertElement = document.getElementById('mainalert');
+		alertElement.innerText = `Simulation Started`;
+		alertElement.classList.add('alert-info');
 		drawGraph(graphData, '#node-0');
 		//highlightSpecificElements(graphData, graphData,graphData,graphData);
 	});
@@ -77,93 +90,78 @@ stompClient.onConnect = (frame) => {
 	highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
 		// First, reset the styles for all nodes and edges to their base styles
 		hideAllEdges();
-		let mqRecordList = JSON.parse(message.body); // This will now be an array
-		let nodesToHighlight = []; // Collect nodes to be highlighted
-		let edgesToHighlight = []; // Collect edges to be highlighted
-		let leadersToHighlight = []; // Collect leader nodes
+		let mqRecord = JSON.parse(message.body); // This will now be an array
 
-		console.log('New list of record------------------------------------------------');
-		// Process each MQRecord in the array
-		mqRecordList.forEach(mqRecord => {
-			const senderNode = mqRecord.senderId;
-			const receiverNode = mqRecord.receiverId;
-			const edgeHighlight = mqRecord.edgeHighlight;
-			const eventType = mqRecord.eventType;
-			const leadernode = mqRecord.leaderNode;
-
-			console.log("EdgeHightlight :", edgeHighlight); // prints the eventType
-			// prints the timeStamp console.log(senderNode.id);if(senderNode) 
-			if (senderNode) {
-				//console.log("Sender Node : ", senderNode.id);   // prints the id of the senderNode
-			} else {
-				//console.log("senderNode is undefined!");
-			}
-
-			if (receiverNode) {
-				//console.log("Receiver Node : ", receiverNode.id); // prints the id of the receiverNode
-			} else {
-				//console.log("receiverNode is undefined!");
-			}
-			//console.log("event type : ", eventType);
-			//console.log("leader Node : ", leadernode);
+		const senderNode = mqRecord.senderId;
+		const receiverNode = mqRecord.receiverId;
+		const edgeHighlight = mqRecord.edgeHighlight;
+		const eventType = mqRecord.eventType;
+		const leadernode = mqRecord.leaderNode;
 
 
-			// Get the styles determined by the event type
-			const styles = determineStyles(eventType);
+		const eventText = senderNode.id + '->' + receiverNode.id + '\n' + eventType;
 
-			// Apply styles based on whether the event refers to a sender or receiver
-			if (senderNode) {
-				nodesToHighlight.push({ id: senderNode.id, event: eventType });
-			}
-			if (receiverNode) {
-				nodesToHighlight.push({ id: receiverNode.id, event: eventType });
-			}
-			if (edgeHighlight) {
-				edgesToHighlight.push({ id: edgeHighlight, event: eventType });
-			}
-			if (leadernode) {
-				leadersToHighlight.push(leadernode);
-			}
+		console.log(receiverNode.id);
+		// Get the styles determined by the event type
+		const styles = determineStyles(eventType);
+		if (eventType == 'SEND') {
+			cy.getElementById(senderNode.id).style('background-color', 'red');
+			cy.getElementById(receiverNode.id).style('background-color', 'yellow');
+			addEvent(eventText, 'red');
+		}
+		if (eventType == 'ECHO') {
+			cy.getElementById(senderNode.id).style('background-color', 'blue');
+			cy.getElementById(receiverNode.id).style('background-color', 'blue');
+			addEvent(eventText, 'blue');
+		}
 
+
+		// Apply styles to leader
+		cy.getElementById(leadernode).addClass('leader');
+		console.log('Event: ', eventType);
+		if (eventType == 'DELIVERED') {
+			cy.getElementById(leadernode).style('background-color', 'green');
+			addEventToList('The Message is Delivered by Leader', 'green');
+			addEvent(eventText, 'green');
+		} else {
+			cy.getElementById(leadernode).addClass('leader');
+		}
+		if (eventType == 'NOTDELIVERED') {
+			cy.getElementById(leadernode).style('background-color', 'black');
+			addEventToList('The Message was not Delivered by Leader', 'red');
+			addEvent(eventText, 'black');
+		} else {
+			cy.getElementById(leadernode).addClass('leader');
+		}
+
+		// Apply styles to edge
+		cy.getElementById(edgeHighlight).style({
+			'line-color': 'pink',
+			'target-arrow-color': 'pink',
+			'label': eventType
 		});
-
-		// Apply styles to nodes
-		nodesToHighlight.forEach(node => {
-			//console.log("Node : ", node);
-			if (node.event == 'SEND') {
-				cy.getElementById(node.id).style('background-color', 'red');
-			}
-			if (node.event == 'ECHO') {
-				cy.getElementById(node.id).style('background-color', 'blue');
-			}
-
-		});
-
-		// Apply styles to edges
-		edgesToHighlight.forEach(edge => {
-			//cy.getElementById(edge).style('line-color', 'pink');
-			cy.getElementById(edge.id).style({
-				'line-color': 'pink',
-				'target-arrow-color': 'pink',
-				'label': edge.event
-			});
-			const edgeConstant = cy.getElementById(edge.id);
-			edgeConstant.style('line-color', '#61bffc');
-			edgeConstant.style('target-arrow-color', '#61bffc');
-			edgeConstant.show();
-		});
-
-		// Apply styles to leaders
-		leadersToHighlight.forEach(leader => {
-			cy.getElementById(leader).addClass('leader');
-		});
-
+		const edgeConstant = cy.getElementById(edgeHighlight);
+		//edgeConstant.style('line-color', '#61bffc');
+		//edgeConstant.style('target-arrow-color', '#61bffc');
+		edgeConstant.show();
 
 	});
 
 	alertSubscription = stompClient.subscribe('/topic/alert_updates', (alertMessage) => {
 		console.log('Received alert update', alertMessage);
-		document.getElementById('mainalert').innerText = alertMessage.body;
+
+		const alertElement = document.getElementById('mainalert');
+		alertElement.innerText = alertMessage.body;
+		alertElement.classList.add('alert-info');
+
+	});
+
+	errorSubscription = stompClient.subscribe('/topic/error_updates', (alertMessage) => {
+		console.log('Received error update', alertMessage);
+
+		const alertElement = document.getElementById('mainalert');
+		alertElement.innerText = alertMessage.body;
+		alertElement.classList.add('alert-danger');
 	});
 
 	cy.on('style', 'node', function(event) {
@@ -188,11 +186,18 @@ function disconnect() {
 	if (alertSubscription) {
 		alertSubscription.unsubscribe();
 	}
+	if (errorSubscription) {
+		errorSubscription.unsubscribe();
+	}
 
 	stompClient.deactivate();
 	//document.getElementById('SimulationButton').innerHTML = "Start";
 	started = false;
 	console.log("Disconnected");
+
+	const alertElement = document.getElementById('mainalert');
+	alertElement.innerText = `Simulation Stopped`;
+	alertElement.classList.add('alert-info');
 }
 
 
@@ -207,10 +212,6 @@ stompClient.onStompError = (frame) => {
 
 let selectedImplementation = ""; // global variable to hold the selected implementation
 
-// Event handler for dropdown items
-/*$(".dropdown-item").click(function(){
-	selectedImplementation = $(this).text();
-});*/
 
 document.getElementById('customRange1').addEventListener('input', function() {
 	document.getElementById('rangeValue').textContent = this.value;
@@ -282,16 +283,6 @@ function updateTimeline(timelineValue) {
 		body: messageJson
 	});
 }
-/*function sendName() {
-	
-}*/
-
-/*$(function() {
-	$("form").on('submit', (e) => e.preventDefault());
-	$("#SimulationButton").click(() => connect());
-	//$("#disconnect").click(() => disconnect());
-	//$("#send").click(() => sendName());
-});*/
 
 
 function highlightSpecificElements(nodeSender, nodeReceiver, edgeId, label) {
@@ -371,36 +362,36 @@ function drawGraph(elements, rootNode) {
 			hasTrailingDivider: true
 		},
 		{
-            id: 'Flood',
-            content: 'Flood',
-            selector: 'node', // applies to nodes only
-            onClickFunction: function(event) {
-                var target = event.target || event.cyTarget;
-                flood(target);
-            },
-            hasTrailingDivider: true
-        },
-        {
-            id: 'Drop',
-            content: 'Drop Messages',
-            selector: 'node', // applies to nodes only
-            onClickFunction: function(event) {
-                var target = event.target || event.cyTarget;
-                dropMessage(target);
-            },
-            hasTrailingDivider: true
-        },
-         {
-            id: 'Alter',
-            content: 'Alter Message Content',
-            selector: 'node', // applies to nodes only
-            onClickFunction: function(event) {
-                var target = event.target || event.cyTarget;
-                alterMessage(target);
-            }
-        }
-        
-        ],
+			id: 'Flood',
+			content: 'Flood',
+			selector: 'node', // applies to nodes only
+			onClickFunction: function(event) {
+				var target = event.target || event.cyTarget;
+				flood(target);
+			},
+			hasTrailingDivider: true
+		},
+		{
+			id: 'Drop',
+			content: 'Drop Messages',
+			selector: 'node', // applies to nodes only
+			onClickFunction: function(event) {
+				var target = event.target || event.cyTarget;
+				dropMessage(target);
+			},
+			hasTrailingDivider: true
+		},
+		{
+			id: 'Alter',
+			content: 'Alter Message Content',
+			selector: 'node', // applies to nodes only
+			onClickFunction: function(event) {
+				var target = event.target || event.cyTarget;
+				alterMessage(target);
+			}
+		}
+
+		],
 		menuItemClasses: ['custom-menu-item'],
 		contextMenuClasses: ['custom-context-menu']
 	});
@@ -410,21 +401,21 @@ function drawGraph(elements, rootNode) {
 }
 
 function hideAllEdges() {
-    let edges = cy.edges();
+	let edges = cy.edges();
 
-    edges.hide();
+	edges.hide();
 
-    // Applying default styles to all edges
-    cy.style()
-      .selector('edge')
-        .style({
-          'line-color': '#ddd',
-          'width': '2px',
-          'curve-style': 'bezier', 
-          'target-arrow-shape': 'triangle',
-          'target-arrow-color': '#ddd'
-        })
-      .update();
+	// Applying default styles to all edges
+	cy.style()
+		.selector('edge')
+		.style({
+			'line-color': '#ddd',
+			'width': '2px',
+			'curve-style': 'bezier',
+			'target-arrow-shape': 'triangle',
+			'target-arrow-color': '#ddd'
+		})
+		.update();
 }
 
 
@@ -432,30 +423,54 @@ function hideAllEdges() {
 function injectFault(node) {
 	// Implement your fault-injection logic here
 	console.log("Crashin Node:", node.id());
+
+	const alertElement = document.getElementById('mainalert');
+	alertElement.innerText = `Crashing Node : ${node.id()}`;
+	alertElement.classList.add('alert-warning');
+
+	nodesCrashed.push(node.id());
 	stompClient.publish({
 		destination: "/app/inject_fault",
 		body: node.id()
 	});
 }
 
-function flood(node){
+function flood(node) {
 	console.log("Sending random messge from Node:", node.id());
+
+	const alertElement = document.getElementById('mainalert');
+	alertElement.innerText = `Sending random messge from Node : ${node.id()}`;
+	alertElement.classList.add('alert-warning');
+
+	nodesByzantine.push(node.id());
 	stompClient.publish({
 		destination: "/app/flood",
 		body: node.id()
 	});
 }
 
-function dropMessage(node){
+function dropMessage(node) {
 	console.log("Dropping some message from node:", node.id());
+
+	const alertElement = document.getElementById('mainalert');
+	alertElement.innerText = `Dropping 50% message from node : ${node.id()}`;
+	alertElement.classList.add('alert-warning');
+
+	nodesByzantine.push(node.id());
 	stompClient.publish({
 		destination: "/app/drop_message",
 		body: node.id()
 	});
 }
 
-function alterMessage(node){
+function alterMessage(node) {
 	console.log("Altering the content of message:", node.id());
+
+	const alertElement = document.getElementById('mainalert');
+	alertElement.innerText = `Altering the content of message : ${node.id()}`;
+	alertElement.classList.add('alert-warning');
+
+	nodesByzantine.push(node.id());
 	stompClient.publish({
 		destination: "/app/alter_message",
 		body: node.id()
@@ -463,7 +478,7 @@ function alterMessage(node){
 }
 
 
-function stopSimulation(){
+function stopSimulation() {
 	console.log("Stopping the simulation ");
 	stompClient.publish({
 		destination: "/app/stop_simulation"
@@ -500,18 +515,57 @@ function determineStyles(eventType) {
 	return styles;
 }
 
+
+function addEventToList(eventText, color) {
+	// Get the <ul> element
+	//const eventList = document.querySelector('.card-body .list-group');
+	const eventList = document.getElementById('eventlist');
+	// Create a new <li> element
+	const newEvent = document.createElement('li');
+	newEvent.className = 'list-group-item';
+	newEvent.textContent = eventText;
+
+	// Set the background color for the event
+	newEvent.style.color = color;
+
+	// Append the new event to the event list
+	eventList.appendChild(newEvent);
+}
+
+/*function addEvent(eventName, color) {
+	const eventBox = document.createElement('div');
+	eventBox.className = 'event-box';
+	eventBox.innerText = eventName;
+
+	// Set the background color
+	eventBox.style.backgroundColor = color;
+
+	// Append to the container
+	eventsChain.appendChild(eventBox);
+	eventsChain.scrollLeft = eventsChain.scrollWidth;
+}*/
+
+
+function addEvent(eventName, color) {
+	const eventBox = document.createElement('div');
+	eventBox.className = 'event-box';
+	eventBox.innerText = eventName;
+
+	// Set the text color and word wrap
+	eventBox.style.color = color;
+	//eventBox.style.wordWrap = "break-word";
+	eventBox.style.padding = "5px"; // You can adjust this value for desired padding
+	eventBox.style.margin = "2px";  // Add some margin for separation between boxes
+	eventBox.style.border = "1px solid #ddd"; // Optional border for better distinction
+
+	// Append to the container
+	eventsChain.appendChild(eventBox);
+	eventsChain.scrollLeft = eventsChain.scrollWidth;
+}
+
+
+
 function resetStyles() {
 
-	//cy.edges().hide();
 
-
-	/*cy.nodes().style({
-		'background-color': '',  // The base background color of your nodes
-	});
-
-	cy.edges().style({
-		'line-color': '#ddd',   // The base line color of your edges
-		'target-arrow-color': '#ddd',   // The base arrow color of your edges
-		'label': '',
-	});*/
 }

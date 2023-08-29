@@ -18,7 +18,7 @@ import com.guppy.simulator.common.typdef.NodeId;
 public abstract class AbstractMessageModel implements IMessage {
 
 	public enum MessageType {
-		SEND, ECHO , DELIVERED
+		SEND, ECHO , DELIVERED, NOTDELIVERED
 	};
 	
 	protected MessageId messageId;

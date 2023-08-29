@@ -63,7 +63,7 @@
 	<main role="main" class="container">
 		<div id="mainalert" class="alert alert-primary" role="alert"></div>
 		<!--  Input fileds -->
-		<div class="card">
+		<div class="card" style="padding: 10px;">
 			<div class="container-fluid card-body">
 				<div class="input-group mb-3">
 					<span class="input-group-text" id="basic-addon2"> Node's</span> <input
@@ -82,8 +82,17 @@
 						<li><a id="separated-link" class="dropdown-item" href="#">Separated
 								link</a></li>
 					</ul>
-
 					<button id="SimulationButton" class="btn btn-dark" type="submit">Start</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="row">
+				<div class="container-fluid card-body">
+					<label for="customRange1" class="form-label">Latency (ms)</label> <input
+						type="range" class="form-range" id="customRange1" min="100"
+						max="5000" value="100"> <span id="rangeValue">100</span>
 				</div>
 			</div>
 		</div>
@@ -96,28 +105,45 @@
 					<!-- Content for first div goes here -->
 					<div id="cy" style="width: 100%; height: 100%;"></div>
 				</div>
-				<div class="col card card_middle">
-					<!-- Content for second div goes here -->
-					<p>Second div content</p>
+				<div class="col card card_middle" style="padding: 10px;">
+					<!-- Card component -->
+					<div class="card card w-100 h-100">
+						<!-- Card header (optional) -->
+						<div class="card-header">Events</div>
+
+						<!-- Scrollable card body -->
+						<div class="card-body"
+							style="overflow-y: auto; max-height: 500px;">
+							<ul id="eventlist" class="list-group list-group-flush">
+								<!-- Sample event list items -->
+
+								<!-- ... add your dynamic events here -->
+							</ul>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
-		<div class="card">
-			<div class="container-fluid card-body">
-				<label for="customRange1" class="form-label">Latency</label> <input
-					type="range" class="form-range" id="customRange1" min="100"
-					max="5000" value="100"> <span id="rangeValue">100</span>
+		<!--  Middle section end -->
+		<div class="container">
+			<div class="row">
+				<div class="col card ">
+					<div class="container">
+						<div id="eventsChain" class="d-flex overflow-auto"
+							style="border: 1px solid #ddd; height: 100px; padding: 20px;">
+							<!-- Event boxes will be appended here dynamically -->
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
-
-
-		<!--  Middle section end -->
 	</main>
 
 	<!-- Footer -->
 	<footer class="footer mt-auto py-3 bg-light">
-		<div class="container">
-			<span class="text-muted">Place sticky footer content here.</span>
+		<div class="container text-center">
+			&copy; 2023 Guppy. All Rights Reserved. | <a href="YourWebsite.com"
+				target="_blank">Guppy.com</a>
 		</div>
 	</footer>
 

@@ -167,3 +167,27 @@ footer {
     border-radius: .25rem;
 }
 
+.event-box {
+    display: inline-block;
+    border: 1px solid #ddd;
+    padding: 5px;
+    margin-right: 5px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    margin : 5px;
+    font-size: 10px;
+    width: 150px;
+    height: 50px;
+    
+}
+
+#eventsChain {
+    min-width: 150px; /* or whatever width you want as minimum */
+}
+
+
+
+.event-box:hover {
+    background-color: #e9ecef;
+}
+

@@ -1,6 +1,5 @@
 package com.guppy.simulator.distributed.node;
 
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -8,15 +7,15 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
-import com.guppy.simulator.broadcast.message.Message;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
-import com.guppy.simulator.broadcast.strategy.AuthenticatedEchoBroadcastStrategy;
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.Controller;
 import com.guppy.simulator.core.NetworkSimulator;
+import com.guppy.simulator.producermq.KafkaMessageProducer;
 
 /**
  * 
@@ -26,6 +25,8 @@ import com.guppy.simulator.core.NetworkSimulator;
 public class Node implements INode {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Node.class);
+	
+	private static final String MESSAGE_CONTENT_STRING = "Hello World!!";
 
 	//private int simulationCount = 0;
 
@@ -43,9 +44,9 @@ public class Node implements INode {
 
 	private final Controller controller;
 	
-	public boolean isInterrupt = false;
+	private boolean isInterrupt = false;
 	
-
+	private final KafkaMessageProducer producer;
 	/*
 	 * Constructor for node initialization
 	 */
@@ -59,6 +60,10 @@ public class Node implements INode {
 		this.N = _N;
 		this.controller = controller;
 		this.isLeader = isLeader;
+		
+		this.producer = new KafkaMessageProducer();
+		
+		strategy.setMQProducer(producer);
 
 	}
 
@@ -67,7 +72,7 @@ public class Node implements INode {
 		//simulationCount++; // TODO
 		int noMessageCount = 0;
 		if (isLeader) {
-			strategy.leaderBroadcast(new MessageContent("Hello World!!")); // TODO this needs to be better
+			strategy.leaderBroadcast(new MessageContent(MESSAGE_CONTENT_STRING)); // TODO this needs to be better
 		}
 
 		while (NetworkSimulator.getInstance().isSystemInSimulation()) {
@@ -85,12 +90,19 @@ public class Node implements INode {
 
 				IMessage message = messageQueue.poll(1000+ NetworkSimulator.getInstance().getNetworkLatency(),
 						TimeUnit.MILLISECONDS);
+				 
 				
 				if(isInterrupt) {
 					messageQueue.clear();
 					strategy.reset();
 				}
 				if (message != null && !isInterrupt) {
+					//check for tampering
+					if(!MESSAGE_CONTENT_STRING.equals(message.getContent().toString())) {
+						LOGGER.warn("Message TAMPERED Detected");
+					}
+					
+					
 					// Process the message
 					if (strategy.executeStrategy(message)) {
 						if (isLeader()) { // Leader initiates reset
@@ -103,7 +115,9 @@ public class Node implements INode {
 							strategy.reset();
 							messageQueue.clear();// Added this to clear the queue once the message is delivered
 							controller.awaitLatchAndReset();
-
+							BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.DELIVERED,
+									NetworkSimulator.getInstance().getNodeName());
+							producer.produce(event);
 							//simulationCount++;
 							// start broadcasting again
 							strategy.leaderBroadcast(new MessageContent("Hello World!!"));
@@ -113,6 +127,7 @@ public class Node implements INode {
 					//The message is not delivered due to faulty nodes
 					controller.initiateReset(N - 1);
 					System.out.println(" The Message was NOT delivered by node leader : ");
+					strategy.publishNotDelivered(message);
 					strategy.reset();
 					messageQueue.clear();// Added this to clear the queue once the message is delivered
 					controller.awaitLatchAndReset();
@@ -154,6 +169,28 @@ public class Node implements INode {
 	@Override
 	public void stop() {
 
+	}
+
+	@Override
+	public void setInterrupt(boolean b) {
+		
+		this.isInterrupt = true;
+		
+	}
+
+	@Override
+	public void injectFlooding(boolean b) {
+		strategy.flood();
+	}
+
+	@Override
+	public void injectDropMessage(boolean b) {
+		strategy.startDropping();
+	}
+
+	@Override
+	public void injectMessageTampering(boolean b) {
+		strategy.startMessageTamper();
 	}
 	
 

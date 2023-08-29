@@ -1,10 +1,7 @@
 package com.guppy.simulator.core;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -21,26 +18,26 @@ import com.guppy.simulator.distributed.node.Node;
 public final class NetworkSimulator extends AbstractNetworkSimulator implements ISimulator {
 
 	private static final AtomicLong idCounter = new AtomicLong();
-	
+
 	private static NetworkSimulator simulator;
 
 	public volatile boolean system_in_Simulation = false;
 
 	private ExecutorService service;
-	
+
 	private final ArrayList<NodeId> nodeName;
-	
+
 	private volatile Integer networkLatency = 1;
-	
-	private Integer faultNodesInjected =0;
-	
-	//private Map<NodeId, Future<?>> futureList = new HashMap<>();
+
+	private Integer faultNodesInjected = 0;
+
+	// private Map<NodeId, Future<?>> futureList = new HashMap<>();
 
 	private NetworkSimulator() {
 		nodeList = new ArrayList<INode>();
 		system_in_Simulation = true;
 		nodeName = new ArrayList<NodeId>();
-		this.networkLatency = 2000;
+		this.networkLatency = 100;
 	}
 
 	public static ISimulator getInstance() {
@@ -57,7 +54,7 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	private void simulateNetwork(int noOfNodes, String strategy, Integer faults) throws Exception {
 
-		service = Executors.newFixedThreadPool(noOfNodes,daemonThreadFactory);
+		service = Executors.newFixedThreadPool(noOfNodes, daemonThreadFactory);
 
 		// TODO remove these hardcoded values
 		strategy = "AuthenticatedEchoBroadcast";
@@ -65,61 +62,60 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		// TODO end
 
 		// List to hold all the Threads
-		//List<Thread> threads = new ArrayList<>();
+		// List<Thread> threads = new ArrayList<>();
 		Controller controller = new Controller();
-		
-		//First create the leader node and dont submit it as it will trigger the broadcast
+
+		// First create the leader node and dont submit it as it will trigger the
+		// broadcast
 		IBroadcastStrategy leaderBroadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
 		NodeId leaderNodeId = generateNodeId();
-		Node leaderNode = new Node(leaderBroadStrat,noOfNodes, faults, controller, leaderNodeId, true);
+		Node leaderNode = new Node(leaderBroadStrat, noOfNodes, faults, controller, leaderNodeId, true);
 		nodeList.add(leaderNode);
 		nodeName.add(leaderNodeId);
-		
-		
+
 		// create other nodes based on strategy
 		try {
-			for (int i = 0; i < noOfNodes-1; i++) {
+			for (int i = 0; i < noOfNodes - 1; i++) {
 				// Create an object of the strategy we are going to use
 				IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
 				// Create a node based on this strategy and add it to the list of nodes
 				NodeId nodeId = generateNodeId();
-				Node node = new Node(broadStrat,noOfNodes, faults, controller, nodeId, false);
+				Node node = new Node(broadStrat, noOfNodes, faults, controller, nodeId, false);
 				nodeList.add(node);
 				nodeName.add(nodeId);
 				Future<?> nodeFuture = service.submit(node);
-				//futureList.put(nodeId, nodeFuture);
+				// futureList.put(nodeId, nodeFuture);
 			}
-			
-			//now submit the leader node to start the broadcasting
-			
-			Future<?> nodeFuture = service.submit(leaderNode);
-			//futureList.put(leaderNodeId, nodeFuture);
 
-			//simulator.electLeader(); // Elect the leader
-			//long count =50;
-			//while (count>0) {
-			//	Thread.sleep(1000);
-			//	// Keep running
-			//	count--;
-			//}
-			//system_in_Simulation= false;
-			//service.shutdown();
-		} catch(Exception e) {
+			// now submit the leader node to start the broadcasting
+
+			Future<?> nodeFuture = service.submit(leaderNode);
+			// futureList.put(leaderNodeId, nodeFuture);
+
+			// simulator.electLeader(); // Elect the leader
+			// long count =50;
+			// while (count>0) {
+			// Thread.sleep(1000);
+			// // Keep running
+			// count--;
+			// }
+			// system_in_Simulation= false;
+			// service.shutdown();
+		} catch (Exception e) {
 			service.shutdown();
 			system_in_Simulation = false;
 		}
 	}
-	
-	
-	ThreadFactory daemonThreadFactory = new ThreadFactory() {
-	    private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
 
-	    @Override
-	    public Thread newThread(Runnable r) {
-	        Thread thread = defaultFactory.newThread(r);
-	        thread.setDaemon(true);
-	        return thread;
-	    }
+	ThreadFactory daemonThreadFactory = new ThreadFactory() {
+		private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread thread = defaultFactory.newThread(r);
+			thread.setDaemon(true);
+			return thread;
+		}
 	};
 
 	@Override
@@ -146,22 +142,21 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	public void electLeader() {
 		// TODO elect a legitimate leader
 		// System.out.println("no of nodes created :+"+nodeList.size());
-		//nodeList.get(0).setLeader(true);
+		// nodeList.get(0).setLeader(true);
 	}
 
 	@Override
 	public boolean injectFault(String nodeId) {
-		//Iterate over all the node and if found interrupt the node
-		/*for(Entry<NodeId, Future<?>> entry : futureList.entrySet()) {
-			if(entry.getKey().getId().equals(nodeId)) {
-				entry.getValue().cancel(true);
-				return true;
-			}
-		}*/
-		for(INode node: nodeList) {
-			if(node.getNodeId().getId().equals(nodeId)) {
-				((Node)node).isInterrupt = true;
-				this.faultNodesInjected ++;
+		// Iterate over all the node and if found interrupt the node
+		/*
+		 * for(Entry<NodeId, Future<?>> entry : futureList.entrySet()) {
+		 * if(entry.getKey().getId().equals(nodeId)) { entry.getValue().cancel(true);
+		 * return true; } }
+		 */
+		for (INode node : nodeList) {
+			if (node.getNodeId().getId().equals(nodeId)) {
+				node.setInterrupt(true);
+				this.faultNodesInjected++;
 				return true;
 			}
 		}
@@ -192,7 +187,7 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	public ArrayList<NodeId> getNodeName() {
 		return nodeName;
 	}
-	
+
 	protected synchronized NodeId generateNodeId() {
 		String idVal = String.valueOf(idCounter.getAndIncrement());
 		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
@@ -200,9 +195,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	@Override
 	public void introduceLatencyInNetwork(int latency) {
-			this.networkLatency = latency;
+		this.networkLatency = latency;
 	}
-	
+
 	@Override
 	public synchronized Integer getNetworkLatency() {
 		return networkLatency;
@@ -216,16 +211,37 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	@Override
 	public boolean flood(String nodeId) {
+		for (INode node : nodeList) {
+			if (node.getNodeId().getId().equals(nodeId)) {
+				node.injectFlooding(true);
+				this.faultNodesInjected++;
+				return true;
+			}
+		}
 		return false;
 	}
 
 	@Override
 	public boolean dropMessage(String nodeId) {
+		for (INode node : nodeList) {
+			if (node.getNodeId().getId().equals(nodeId)) {
+				node.injectDropMessage(true);
+				this.faultNodesInjected++;
+				return true;
+			}
+		}
 		return false;
 	}
 
 	@Override
 	public boolean alterMessage(String nodeId) {
+		for (INode node : nodeList) {
+			if (node.getNodeId().getId().equals(nodeId)) {
+				node.injectMessageTampering(true);
+				this.faultNodesInjected++;
+				return true;
+			}
+		}
 		return false;
 	}
 

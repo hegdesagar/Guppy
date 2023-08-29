@@ -37,7 +37,7 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 
 	private List<IMessage> echoMessages = new LinkedList<IMessage>();
 
-	private final KafkaMessageProducer producer;
+	private KafkaMessageProducer producer;
 
 	List<BroadcastEvent> broadcastEventsList = new ArrayList<>();
 
@@ -50,8 +50,9 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		this.f = _f;
 		sentEcho = false;
 		delivered = false;
-		this.producer = new KafkaMessageProducer();
+		
 	}
+	
 
 	@Override
 	public boolean executeStrategy(IMessage message) throws Exception {
@@ -60,27 +61,33 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		if (maybeDontSendMessage && dropMessage()) {
 			LOGGER.warn("Node : {}  Message Dropped ", nodeId);
 			return false;
-		}else if(maybeAlterMessageContent){ // Alter the message
-			LOGGER.warn("Node : {}  Message Altered ", nodeId);
-			message = alterMessage(message);
 		}
-		
-		//Process the message
+
+		// Process the message
 		if (MessageType.SEND.equals(message.getType())) {
 			if (message.getSenderId().equals(nodeId) && !sentEcho) {
 				// If this node is the sender of the SEND message
 				sentEcho = true;
 				// Add the sender's own echo message in the echoMessages map
-				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO,
-						message.getIteration());
+				// Message echoMessage = new Message(nodeId, message.getContent(),
+				// MessageType.ECHO,
+				// message.getIteration());
 				// echoMessages.add(echoMessage);
 				// Broadcast the original SEND message
+				if (maybeAlterMessageContent) { // Alter the message
+					LOGGER.warn("Node : {}  Message Altered ", nodeId);
+					message = alterMessage(message);
+				}
 				broadcastMessage(message);
 			} else {
 				// If this node is not the sender of the SEND message
 				// Create a new ECHO message and broadcast it
-				Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO,
+				IMessage echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO,
 						message.getIteration());
+				if (maybeAlterMessageContent) { // Alter the message
+					LOGGER.warn("Node : {}  Message Altered ", nodeId);
+					echoMessage = alterMessage(echoMessage);
+				}
 				if (maybeSendRedundantMessages) {
 					LOGGER.warn("Node : {}  Flooding Messaged ", nodeId);
 					floodMessages(echoMessage);
@@ -98,10 +105,6 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 			// if (echoCount >5 && !delivered && isNodeLeader(nodeId)) { //test logic
 			this.delivered = true;
 			LOGGER.info("Node : {}  Message delivered ", nodeId);
-
-			BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.DELIVERED,
-					NetworkSimulator.getInstance().getNodeName());
-			producer.produce(event);
 			return true;
 		}
 		return false;
@@ -116,11 +119,12 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			BroadcastEvent event = new BroadcastEvent(sendMessage.getSenderId(), node.getNodeId(), MessageType.SEND,
 					NetworkSimulator.getInstance().getNodeName());
-			broadcastEventsList.add(event);
+			//broadcastEventsList.add(event);
+			producer.produce(event);
 		}
 		// Publish these events to the MQ
-		producer.produce(broadcastEventsList);
-		broadcastEventsList.clear();
+		//producer.produce(broadcastEventsList);
+		//broadcastEventsList.clear();
 		// Broadcast the SEND message to all other nodes
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			try {
@@ -243,6 +247,36 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 			return new Message(nodeId, content, MessageType.ECHO, generateIteration());
 		}
 		return message;
+	}
+
+	@Override
+	public void flood() {
+		this.maybeSendRedundantMessages = true;
+
+	}
+
+	@Override
+	public void startDropping() {
+		this.maybeDontSendMessage = true;
+	}
+
+	@Override
+	public void startMessageTamper() {
+		this.maybeAlterMessageContent = true;
+	}
+
+	@Override
+	public void publishNotDelivered(IMessage message) {
+		BroadcastEvent event = new BroadcastEvent(nodeId, nodeId,
+				MessageType.NOTDELIVERED, NetworkSimulator.getInstance().getNodeName());
+		producer.produce(event);
+		
+	}
+
+	@Override
+	public void setMQProducer(KafkaMessageProducer mqProducer) {
+		this.producer = mqProducer;
+		
 	}
 
 }
