@@ -122,29 +122,6 @@ public class VisualiserController {
 		}
 
 
-
-		//System.out.println("Returning from simulation:");
-
-		//System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
-
-	}
-
-	private HighlightEvent processEvent(String message) {
-		HighlightEvent event = new HighlightEvent();
-		try {
-			GraphEvent eventMessage = convertJsonToBroadcastEvent(message);
-			event.setLeaderNode("node-0");
-			event.setSenderNode(eventMessage.getSenderId().getId());
-			event.setReceiverNode(eventMessage.getReceiverId().getId());
-			event.setEventType(eventMessage.getEventType());
-			String construtedEdge = Strings.concat(eventMessage.getSenderId().getId(),
-					eventMessage.getReceiverId().getId());
-			event.setEdgeHighlight(construtedEdge);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return event;
 	}
 
 	private void creatNetworkGraph(Integer nodes) {
@@ -158,8 +135,10 @@ public class VisualiserController {
 	// Create Edges : Construct the node names
 	private static List<Node> generateNodeNames(int size) {
 		List<Node> nodeNames = new ArrayList<Node>();
-		for (int i = 0; i < size; i++) {
-			NodeData data = new NodeData("node-" + i);
+		NodeData data = new NodeData("node-0","leader");
+		nodeNames.add(new Node(data));
+		for (int i = 1; i < size; i++) {
+			data = new NodeData("node-" + i,"");
 			nodeNames.add(new Node(data));
 		}
 		return nodeNames;

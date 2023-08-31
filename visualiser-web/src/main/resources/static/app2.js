@@ -24,9 +24,9 @@ window.onload = function() {
 	//Default data for cyptoscape
 	const elements = {
 		nodes: [
-			{ data: { id: 'a' } },
-			{ data: { id: 'b' } },
-			{ data: { id: 'c' } }
+			{ data: { id: 'a', label: 'leader' } },
+			{ data: { id: 'b', label: '' } },
+			{ data: { id: 'c', label: '' } }
 		],
 
 		edges: [
@@ -46,7 +46,7 @@ window.onload = function() {
 
 	//event box
 	//const eventText = 'a' + '->' + 'c' + '\n' + 'SEND';
-	const eventText = 'node-0 ' + '->' + ' node-2' + '\n' + 'SEND';
+	//const eventText = 'node-0 ' + '->' + ' node-2' + '\n' + 'SEND';
 	addEvent(eventText, 'red');
 }
 
@@ -308,11 +308,17 @@ function drawGraph(elements, rootNode) {
 		style: cytoscape.stylesheet()
 			.selector('node')
 			.style({
-				'content': 'data(id)',
+				'content': function(ele) {
+					return ele.data('id') + (ele.data('label') ? '\n' + ele.data('label') : "");
+				},
 				'text-wrap': 'wrap',
-				'text-max-width': 80 // adjust as per your needs
-				//'text-valign': 'top'
-
+				'text-max-width': 80,
+				'text-valign': 'center',  // Adjust based on where you want the combined content+label to appear
+				'text-halign': 'center',
+				'text-background-color': '#ffffff', // Optional: if you want a background for your label
+				'text-background-opacity': 0.7,    // Adjust as needed
+				'text-background-padding': '2px',  // Padding around the label
+				'text-background-shape': 'rectangle' // Background shape
 			})
 			.selector('edge[label]')
 			.style({
@@ -433,6 +439,8 @@ function injectFault(node) {
 		destination: "/app/inject_fault",
 		body: node.id()
 	});
+
+	updateNodeLabel(target, "Crashed");
 }
 
 function flood(node) {
@@ -447,6 +455,8 @@ function flood(node) {
 		destination: "/app/flood",
 		body: node.id()
 	});
+
+	updateNodeLabel(target, "Flood");
 }
 
 function dropMessage(node) {
@@ -461,6 +471,8 @@ function dropMessage(node) {
 		destination: "/app/drop_message",
 		body: node.id()
 	});
+
+	updateNodeLabel(node, "Drop");
 }
 
 function alterMessage(node) {
@@ -475,6 +487,8 @@ function alterMessage(node) {
 		destination: "/app/alter_message",
 		body: node.id()
 	});
+
+	updateNodeLabel(target, "Alter");
 }
 
 
@@ -532,19 +546,6 @@ function addEventToList(eventText, color) {
 	eventList.appendChild(newEvent);
 }
 
-/*function addEvent(eventName, color) {
-	const eventBox = document.createElement('div');
-	eventBox.className = 'event-box';
-	eventBox.innerText = eventName;
-
-	// Set the background color
-	eventBox.style.backgroundColor = color;
-
-	// Append to the container
-	eventsChain.appendChild(eventBox);
-	eventsChain.scrollLeft = eventsChain.scrollWidth;
-}*/
-
 
 function addEvent(eventName, color) {
 	const eventBox = document.createElement('div');
@@ -562,6 +563,21 @@ function addEvent(eventName, color) {
 	eventsChain.appendChild(eventBox);
 	eventsChain.scrollLeft = eventsChain.scrollWidth;
 }
+
+function updateNodeLabel(node, text) {
+	// Get the current node's label
+	const currentLabel = node.data('label') || ""; // Default to empty string if undefined
+
+	// Check if the current label is empty or just whitespace
+	if (currentLabel.trim() === "") {
+		node.data('label', text);
+	} else {
+		// Append the new text to the current label
+		const newLabel = currentLabel + '\n' + text;
+		node.data('label', newLabel);
+	}
+}
+
 
 
 
