@@ -3,7 +3,16 @@ package com.guppy.visualiserweb.data.model;
 public class SimulationOptions {
 	private Integer nodes;
 	private String implementation;
-	private Integer timeline; // Added this line
+	private Integer timeline;
+	private Integer faults;
+
+	public Integer getFaults() {
+		return faults;
+	}
+
+	public void setFaults(Integer faults) {
+		this.faults = faults;
+	}
 
 	public Integer getNodes() {
 		return nodes;

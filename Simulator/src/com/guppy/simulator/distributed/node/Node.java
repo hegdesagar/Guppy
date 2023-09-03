@@ -1,5 +1,7 @@
 package com.guppy.simulator.distributed.node;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +30,6 @@ public class Node implements INode {
 	
 	private static final String MESSAGE_CONTENT_STRING = "Hello World!!";
 
-	//private int simulationCount = 0;
-
 	protected NodeId nodeId;
 
 	protected boolean isLeader = false;
@@ -53,7 +53,7 @@ public class Node implements INode {
 	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller, NodeId _nodeId, boolean isLeader)
 			throws Exception {
 		this.nodeId = _nodeId;
-		_strategy.setNodeId(this.nodeId);
+		//_strategy.setNodeId(this.nodeId);
 		this.strategy = _strategy;
 		messageQueue = new LinkedBlockingQueue<IMessage>();
 		this.F = _F;
@@ -69,6 +69,7 @@ public class Node implements INode {
 
 	@Override
 	public void run() {
+		LocalDateTime sendDeliverLatency;
 		//simulationCount++; // TODO
 		int noMessageCount = 0;
 		if (isLeader) {
@@ -88,7 +89,7 @@ public class Node implements INode {
 					controller.awaitUntillLatch();
 				}
 
-				IMessage message = messageQueue.poll(1000+ NetworkSimulator.getInstance().getNetworkLatency(),
+				IMessage message = messageQueue.poll(500+ NetworkSimulator.getInstance().getNetworkLatency(),
 						TimeUnit.MILLISECONDS);
 				 
 				
@@ -97,6 +98,16 @@ public class Node implements INode {
 					strategy.reset();
 				}
 				if (message != null && !isInterrupt) {
+					
+					//Calculate Latency for the message
+					
+					LocalDateTime now = LocalDateTime.now();
+					Duration duration = Duration.between(message.getTimeStamp(), now);
+					long latencyInMillis = duration.toMillis();
+					
+					System.out.println("NOde Latency calculated ::::::::::::::::::::::::: "+latencyInMillis);
+					
+					
 					//check for tampering
 					if(!MESSAGE_CONTENT_STRING.equals(message.getContent().toString())) {
 						LOGGER.warn("Message TAMPERED Detected");
@@ -104,7 +115,7 @@ public class Node implements INode {
 					
 					
 					// Process the message
-					if (strategy.executeStrategy(message)) {
+					if (strategy.executeStrategy(message,latencyInMillis)) {
 						if (isLeader()) { // Leader initiates reset
 							controller.initiateReset(N - 1);
 							System.out.println(" The Message was delivered by node leader : " + nodeId);
@@ -115,11 +126,18 @@ public class Node implements INode {
 							strategy.reset();
 							messageQueue.clear();// Added this to clear the queue once the message is delivered
 							controller.awaitLatchAndReset();
+							
+							//calculate the send to deliver latency
+							LocalDateTime current = LocalDateTime.now();
+							Duration durationBtwSendDeliver = Duration.between(message.getTimeStamp(), current);
+							long sendDelIntervalMilliSec = durationBtwSendDeliver.toMillis();
+							//Broadcast the event
 							BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.DELIVERED,
-									NetworkSimulator.getInstance().getNodeName());
+									NetworkSimulator.getInstance().getNodeName(),sendDelIntervalMilliSec);
 							producer.produce(event);
-							//simulationCount++;
+							
 							// start broadcasting again
+							sendDeliverLatency = LocalDateTime.now();
 							strategy.leaderBroadcast(new MessageContent("Hello World!!"));
 						}
 					} 

@@ -35,7 +35,7 @@
 						<li class="nav-item"><a class="nav-link active"
 							aria-current="page" href="#">Docs</a></li>
 						<li class="nav-item"><a class="nav-link" href="#">Github</a></li>
-						<li class="nav-item dropdown"><a
+						<!-- <li class="nav-item dropdown"><a
 							class="nav-link dropdown-toggle" href="#" role="button"
 							data-bs-toggle="dropdown" aria-expanded="false"> Dropdown </a>
 							<ul class="dropdown-menu">
@@ -44,15 +44,15 @@
 								<li><hr class="dropdown-divider"></li>
 								<li><a class="dropdown-item" href="#">Something else
 										here</a></li>
-							</ul></li>
+							</ul></li>  -->
 						<li class="nav-item"><a class="nav-link disabled">Contact</a>
 						</li>
 					</ul>
-					<form class="d-flex" role="search">
+					<!-- <form class="d-flex" role="search">
 						<input class="form-control me-2" type="search"
 							placeholder="Search" aria-label="Search">
 						<button class="btn btn-outline-success" type="submit">Search</button>
-					</form>
+					</form>  -->
 				</div>
 			</div>
 		</nav>
@@ -68,19 +68,17 @@
 				<div class="input-group mb-3">
 					<span class="input-group-text" id="basic-addon2"> Node's</span> <input
 						id="nodes" type="text" class="form-control" placeholder="Nodes"
-						aria-label="Enter number of nodes" aria-describedby="basic-addon2">
+						aria-label="Enter number of nodes" aria-describedby="basic-addon2"
+						value="5"> <span class="input-group-text"
+						id="basic-addon3"> Faults</span> <input id="faults" type="text"
+						class="form-control" placeholder="2"
+						aria-label="Enter number of faults"
+						aria-describedby="basic-addon3" value="2">
 					<button id="dropdownMenuButton"
 						class="btn btn-outline-secondary dropdown-toggle" type="button"
 						data-bs-toggle="dropdown" aria-expanded="false">Implementation</button>
 					<ul id="implementation" class="dropdown-menu">
-						<li><a id="echo" class="dropdown-item" href="#">Echo</a></li>
-						<li><a id="double-echo" class="dropdown-item" href="#">Double
-								Echo</a></li>
-						<li><a id="something-else" class="dropdown-item" href="#">Something
-								else here</a></li>
-						<li><hr class="dropdown-divider"></li>
-						<li><a id="separated-link" class="dropdown-item" href="#">Separated
-								link</a></li>
+						<!-- 	Dynamically populate the list	 -->
 					</ul>
 					<button id="SimulationButton" class="btn btn-dark" type="submit">Start</button>
 				</div>
@@ -104,6 +102,9 @@
 				<div class="col card card_middle">
 					<!-- Content for first div goes here -->
 					<div id="cy" style="width: 100%; height: 100%;"></div>
+					<img src="/images/node_color_rep.png" alt="Description of Image"
+						class="img-fluid custom-spacing">
+
 				</div>
 				<div class="col card card_middle" style="padding: 10px;">
 					<!-- Card component -->
@@ -139,6 +140,27 @@
 		</div>
 	</main>
 
+	<!-- Graph metric section -->
+	<div class="container">
+		<div class="row">
+			<div class="col card card_middle">
+				<canvas id="latencyChart"></canvas>
+			</div>
+			<div class="col card card_middle" style="padding: 10px;">
+				<canvas id="throughputChart"></canvas>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col card card_middle">
+				<canvas id="sendToDeliverChart"></canvas>
+			</div>
+			<div class="col card card_middle" style="padding: 10px;">
+				<canvas id="deliveryStatusChart" width="200" height="200">></canvas>
+			</div>
+		</div>
+	</div>
+
+
 	<!-- Footer -->
 	<footer class="footer mt-auto py-3 bg-light">
 		<div class="container text-center">
@@ -162,7 +184,14 @@
 		src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.25.0/cytoscape.min.js"></script>
 	<script
 		src='https://unpkg.com/cytoscape-context-menus@3.0.1/cytoscape-context-menus.js'></script>
+	<script
+		src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
 
+
+	<!--  <script src="/chart.js"></script> -->
 	<script src="/app2.js"></script>
+	<script src="/metric.js"></script>
 </body>
 </html>

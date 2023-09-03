@@ -6,6 +6,15 @@ import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageTy
 import com.guppy.simulator.common.typdef.NodeId;
 
 public class BroadcastEvent {
+	
+	public BroadcastEvent(NodeId senderId, NodeId receiverId, MessageType eventType, ArrayList<NodeId> nodeNames,long latency) {
+		//super();
+		this.nodeNames = nodeNames;
+		this.senderId = senderId;
+		this.receiverId = receiverId;
+		this.eventType = eventType;
+		this.timeStamp = latency;
+	}
 
 	private ArrayList<NodeId> nodeNames;
 	private NodeId senderId;
@@ -54,13 +63,5 @@ public class BroadcastEvent {
 		this.timeStamp = timeStamp;
 	}
 
-	public BroadcastEvent(NodeId senderId, NodeId receiverId, MessageType eventType, ArrayList<NodeId> nodeNames) {
-		super();
-		this.nodeNames = nodeNames;
-		this.senderId = senderId;
-		this.receiverId = receiverId;
-		this.eventType = eventType;
-		this.timeStamp = System.currentTimeMillis();
-	}
 
 }

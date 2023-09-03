@@ -1,5 +1,6 @@
 package com.guppy.simulator.broadcast.message;
 
+import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
@@ -19,5 +20,9 @@ public interface IMessage {
 	public AtomicLong getIteration();
 	
 	public void setIteration(AtomicLong iteration);
+	
+	public LocalDateTime getTimeStamp();
+
+	public void setTimeStamp(LocalDateTime timeStamp);
 
 }

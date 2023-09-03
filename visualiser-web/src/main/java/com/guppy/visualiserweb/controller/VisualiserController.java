@@ -43,14 +43,12 @@ public class VisualiserController {
 
 	ISimulator simulator = NetworkSimulator.getInstance();
 
-	private final static String QUEUE_NAME = "SIMULATION-QUEUE";
-	
 	private List<String> faultyNodes = new ArrayList<>();
 
 	@Autowired
 	private SimpMessagingTemplate template;
 
-	private int faults = 2; // TODO
+	//private int faults = 2; // TODO
 
 	@MessageMapping("/simulate")
 	public void simulate(SimulationOptions options) throws Exception {
@@ -68,8 +66,10 @@ public class VisualiserController {
 		}
 		String implementation = options.getImplementation(); // Accessing the implementation
 		int timeline = options.getTimeline(); // Accessing the time-line
+		int acceptableFaults = options.getFaults(); // Accessing the faults
 
-		LOGGER.info("Nodes :{} , Implementation selected {} and Latency {}", nodes, implementation, timeline);
+		LOGGER.info("Nodes :{} , Implementation selected {} , Latency {} and faults {}", 
+				nodes, implementation, timeline,acceptableFaults);
 
 		// Create Network Graph and publish it to front-end
 		creatNetworkGraph(nodes);
@@ -77,10 +77,9 @@ public class VisualiserController {
 
 
 		// Further processing based on nodes, implementation, and timeline
-		// Start Simulation
 		// Start Simulation in a new thread
 		new Thread(() -> {
-			 startSimulation(nodes, implementation, faults); // TODO latency is hard coded
+			 startSimulation(nodes, implementation, acceptableFaults); // TODO latency is hard coded
 		}).start();
 
 		// start polling for messages from kafka
@@ -107,9 +106,6 @@ public class VisualiserController {
 
 		                // Publish the single processed record to the front-end
 		                template.convertAndSend("/topic/highlight_nodes", mqrecord);
-		                
-		                // Sleep for timeline (adjust or remove as needed)
-		                // Thread.sleep(500);
 		                
 		            } catch (Exception e) {
 		                e.printStackTrace();

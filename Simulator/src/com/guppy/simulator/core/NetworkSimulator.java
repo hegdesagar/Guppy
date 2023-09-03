@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -57,7 +56,7 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		service = Executors.newFixedThreadPool(noOfNodes, daemonThreadFactory);
 
 		// TODO remove these hardcoded values
-		strategy = "AuthenticatedEchoBroadcast";
+		//strategy = "AuthenticatedEchoBroadcast";
 		faults = 2;
 		// TODO end
 
@@ -67,8 +66,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 		// First create the leader node and dont submit it as it will trigger the
 		// broadcast
-		IBroadcastStrategy leaderBroadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
 		NodeId leaderNodeId = generateNodeId();
+		IBroadcastStrategy leaderBroadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults,leaderNodeId);
+		//IBroadcastStrategy leaderBroadStrat = new CPABroadcastStrategy(noOfNodes, faults,leaderNodeId);
 		Node leaderNode = new Node(leaderBroadStrat, noOfNodes, faults, controller, leaderNodeId, true);
 		nodeList.add(leaderNode);
 		nodeName.add(leaderNodeId);
@@ -76,31 +76,21 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		// create other nodes based on strategy
 		try {
 			for (int i = 0; i < noOfNodes - 1; i++) {
-				// Create an object of the strategy we are going to use
-				IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults);
 				// Create a node based on this strategy and add it to the list of nodes
 				NodeId nodeId = generateNodeId();
+				// Create an object of the strategy we are going to use
+				//IBroadcastStrategy broadStrat = new CPABroadcastStrategy(noOfNodes, faults,nodeId);
+				IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults,nodeId);
 				Node node = new Node(broadStrat, noOfNodes, faults, controller, nodeId, false);
 				nodeList.add(node);
 				nodeName.add(nodeId);
-				Future<?> nodeFuture = service.submit(node);
+				service.submit(node);
 				// futureList.put(nodeId, nodeFuture);
 			}
 
 			// now submit the leader node to start the broadcasting
+			service.submit(leaderNode);
 
-			Future<?> nodeFuture = service.submit(leaderNode);
-			// futureList.put(leaderNodeId, nodeFuture);
-
-			// simulator.electLeader(); // Elect the leader
-			// long count =50;
-			// while (count>0) {
-			// Thread.sleep(1000);
-			// // Keep running
-			// count--;
-			// }
-			// system_in_Simulation= false;
-			// service.shutdown();
 		} catch (Exception e) {
 			service.shutdown();
 			system_in_Simulation = false;

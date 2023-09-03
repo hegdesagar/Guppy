@@ -21,6 +21,33 @@ OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICAT
 
 //Load the graph and other details once the page loads with dummy data
 window.onload = function() {
+
+	//fetch the elements for dropdown
+	fetch('http://localhost:8080/api/broadcasting_impl')
+		.then(response => response.json())
+		.then(data => {
+			const dropdownMenu = document.getElementById('implementation');
+			dropdownMenu.innerHTML = ''; // Clear previous items
+
+			data.forEach(item => {
+				const listItem = document.createElement('li');
+				const link = document.createElement('a');
+				link.className = 'dropdown-item';
+				link.href = "#"; // or any specific link
+				link.innerText = item.label;
+				link.id = item.value; // Setting the ID to the value
+
+				listItem.appendChild(link);
+				dropdownMenu.appendChild(listItem);
+			});
+
+			addDropdownClickListeners();
+		})
+		.catch(error => {
+			console.error('There was an error fetching the dropdown data:', error);
+		});
+
+
 	//Default data for cyptoscape
 	const elements = {
 		nodes: [
@@ -45,10 +72,22 @@ window.onload = function() {
 	cy.getElementById('a').addClass('leader');
 
 	//event box
-	//const eventText = 'a' + '->' + 'c' + '\n' + 'SEND';
+	const eventText = 'a' + '->' + 'c' + '\n' + 'SEND';
 	//const eventText = 'node-0 ' + '->' + ' node-2' + '\n' + 'SEND';
 	addEvent(eventText, 'red');
 }
+
+function addDropdownClickListeners() {
+	document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(function(item) {
+		item.addEventListener('click', function(event) {
+			event.preventDefault();
+			const selectedItemText = event.target.textContent;
+			document.getElementById('dropdownMenuButton').textContent = selectedItemText;
+			console.log('Selected Implementation:', selectedItemText);
+		});
+	});
+}
+
 
 // define the cy variable without initializing
 let cy = null;
@@ -71,8 +110,14 @@ let highlightNodesSubscription;
 let alertSubscription;
 let errorSubscription;
 
+let deliveredCount = 0;
+let notDeliveredCount = 0;
+
 stompClient.onConnect = (frame) => {
 	console.log('Connected: ' + frame);
+
+	startThroughputMonitoring();
+
 	simulateDataSubscription = stompClient.subscribe('/topic/simulate_data', (greeting) => {
 		//console.log(greeting.body);
 		const receivedData = JSON.parse(greeting.body);
@@ -83,7 +128,14 @@ stompClient.onConnect = (frame) => {
 		alertElement.innerText = `Simulation Started`;
 		alertElement.classList.add('alert-info');
 		drawGraph(graphData, '#node-0');
-		//highlightSpecificElements(graphData, graphData,graphData,graphData);
+
+		//publish the latency and throughput graph
+		/*const nodeLists = graphData.nodes;
+		nodeLists.forEach(node => {
+			console.log(node.data.id);
+			addNodeDataToChart(node.data.id, [5,6,8,9], "blue");
+		});*/
+
 	});
 
 
@@ -98,20 +150,26 @@ stompClient.onConnect = (frame) => {
 		const eventType = mqRecord.eventType;
 		const leadernode = mqRecord.leaderNode;
 
+		//update throughput
+		onMessageReceived();
 
-		const eventText = senderNode.id + '->' + receiverNode.id + '\n' + eventType;
+		const eventText = eventType;
 
-		console.log(receiverNode.id);
-		// Get the styles determined by the event type
-		const styles = determineStyles(eventType);
-		if (eventType == 'SEND') {
-			cy.getElementById(senderNode.id).style('background-color', 'red');
-			cy.getElementById(receiverNode.id).style('background-color', 'yellow');
-			addEvent(eventText, 'red');
+		if (eventType === 'SEND') {
+			console.log("SEND Egde : ",edgeHighlight);
+			cy.getElementById(edgeHighlight).style({
+				'line-color': 'green',
+				'target-arrow-color': 'green',
+				'label': eventType
+			});
+			addEvent(eventText, 'green');
 		}
-		if (eventType == 'ECHO') {
-			cy.getElementById(senderNode.id).style('background-color', 'blue');
-			cy.getElementById(receiverNode.id).style('background-color', 'blue');
+		if (eventType === 'ECHO') {
+			cy.getElementById(edgeHighlight).style({
+				'line-color': 'blue',
+				'target-arrow-color': 'blue',
+				'label': eventType
+			});
 			addEvent(eventText, 'blue');
 		}
 
@@ -120,29 +178,47 @@ stompClient.onConnect = (frame) => {
 		cy.getElementById(leadernode).addClass('leader');
 		console.log('Event: ', eventType);
 		if (eventType == 'DELIVERED') {
-			cy.getElementById(leadernode).style('background-color', 'green');
-			addEventToList('The Message is Delivered by Leader', 'green');
-			addEvent(eventText, 'green');
-		} else {
-			cy.getElementById(leadernode).addClass('leader');
-		}
-		if (eventType == 'NOTDELIVERED') {
-			cy.getElementById(leadernode).style('background-color', 'black');
-			addEventToList('The Message was not Delivered by Leader', 'red');
+			//cy.getElementById(leadernode).style('background-color', 'green');
+			addEventToList('The Message is Delivered by Leader', 'black');
 			addEvent(eventText, 'black');
 		} else {
 			cy.getElementById(leadernode).addClass('leader');
 		}
+		if (eventType == 'NOTDELIVERED') {
+			//cy.getElementById(leadernode).style('background-color', 'black');
+			addEventToList('The Message was not Delivered by Leader', 'red');
+			addEvent(eventText, 'red');
+		} else {
+			cy.getElementById(leadernode).addClass('leader');
+		}
+
 
 		// Apply styles to edge
-		cy.getElementById(edgeHighlight).style({
+		/*cy.getElementById(edgeHighlight).style({
 			'line-color': 'pink',
 			'target-arrow-color': 'pink',
 			'label': eventType
-		});
+		});*/
 		const edgeConstant = cy.getElementById(edgeHighlight);
 		//edgeConstant.style('line-color', '#61bffc');
 		//edgeConstant.style('target-arrow-color', '#61bffc');
+		
+		//update latency
+		const latency = mqRecord.timeStamp;
+		if (eventType !== "SEND" && eventType !== "DELIVERED" && eventType !== "NOTDELIVERED" && latency !== 0) {
+			console.log('latency ', latency);
+			updateNodeDataset(senderNode.id, latency);
+		}
+
+		//update send to deliver duration
+		if (eventType === "DELIVERED") {
+			updateSendToDeliverDuration(latency);
+			deliveredCount = deliveredCount + 1;
+			updateDeliveredCount(deliveredCount);
+		} else if (eventType === "NOTDELIVERED") {
+			notDeliveredCount = notDeliveredCount + 1;  // Get this from your data or logic
+			updateNotDeliveredCount(notDeliveredCount);
+		}
 		edgeConstant.show();
 
 	});
@@ -175,6 +251,10 @@ stompClient.onConnect = (frame) => {
 };
 
 function disconnect() {
+
+
+	stopThroughputMonitoring();
+
 	if (simulateDataSubscription) {
 		simulateDataSubscription.unsubscribe();
 	}
@@ -217,15 +297,31 @@ document.getElementById('customRange1').addEventListener('input', function() {
 	document.getElementById('rangeValue').textContent = this.value;
 });
 
+document.querySelectorAll('#implementation .dropdown-item').forEach(item => {
+	item.addEventListener('click', function(event) {
+		event.preventDefault();
+		const button = document.getElementById('dropdownMenuButton');
+		button.textContent = event.target.textContent;
+		console.log("Selected Implementation:", event.target.textContent);
+		//console.log("Selected Implementation:", event.target.textContent);
+	});
+});
+
 function publish() {
 	const nodesValue = $("#nodes").val();
+	const faultsValue = $("#faults").val();
 	const timelineValue = $('#customRange1').val();
-	//const implementation = document.querySelector('#implementation .dropdown-item').textContent;
+	//const selectedImplementation = document.querySelector('#implementation .dropdown-item').textContent;
+	const selectedImplementation = document.getElementById('dropdownMenuButton').textContent;
+
+	//initialize the latency graph nodes
+	initializeNodes(nodesValue);
 
 	let messageJson = JSON.stringify({
 		'nodes': nodesValue,
 		'implementation': selectedImplementation,
-		'timeline': timelineValue
+		'timeline': timelineValue,
+		'faults': faultsValue
 	});
 
 
@@ -341,7 +437,7 @@ function drawGraph(elements, rootNode) {
 			.selector('.leader')  // define the leader node style
 			.style({
 				'background-color': '#66ff66',
-				'border-width': '4px',
+				'border-width': '1px',
 				'border-color': '#ff3333'
 			}),
 
@@ -439,8 +535,8 @@ function injectFault(node) {
 		destination: "/app/inject_fault",
 		body: node.id()
 	});
-
-	updateNodeLabel(target, "Crashed");
+	cy.getElementById(node.id()).style('background-color', 'red');
+	updateNodeLabel(node, "Crashed");
 }
 
 function flood(node) {
@@ -455,8 +551,8 @@ function flood(node) {
 		destination: "/app/flood",
 		body: node.id()
 	});
-
-	updateNodeLabel(target, "Flood");
+	cy.getElementById(node.id()).style('background-color', 'yellow');
+	updateNodeLabel(node, "Flood");
 }
 
 function dropMessage(node) {
@@ -471,7 +567,7 @@ function dropMessage(node) {
 		destination: "/app/drop_message",
 		body: node.id()
 	});
-
+	cy.getElementById(node.id()).style('background-color', 'yellow');
 	updateNodeLabel(node, "Drop");
 }
 
@@ -487,8 +583,8 @@ function alterMessage(node) {
 		destination: "/app/alter_message",
 		body: node.id()
 	});
-
-	updateNodeLabel(target, "Alter");
+	cy.getElementById(node.id()).style('background-color', 'yellow');
+	updateNodeLabel(node, "Alter");
 }
 
 
@@ -577,9 +673,6 @@ function updateNodeLabel(node, text) {
 		node.data('label', newLabel);
 	}
 }
-
-
-
 
 function resetStyles() {
 

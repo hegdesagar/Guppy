@@ -4,58 +4,45 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.guppy.simulator.broadcast.events.BroadcastEvent;
-//import com.guppy.simulator.broadcast.events.BroadcastEvent;
 import com.guppy.simulator.broadcast.message.IMessage;
 import com.guppy.simulator.broadcast.message.Message;
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
+import com.guppy.simulator.broadcast.strategy.annotation.BroadCastStrategy;
 import com.guppy.simulator.common.typdef.MessageContent;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
-import com.guppy.simulator.producermq.KafkaMessageProducer;
 
 /**
  * 
  * @author SagarHegde
  *
  */
-public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrategy {
+@BroadCastStrategy("AuthenticatedEchoBroadcast")
+public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastStrategy implements IBroadcastStrategy {
 
 	private boolean sentEcho;
 	private boolean delivered;
-	private int N; // Number of nodes
-	private int f; // Maximum number of faulty nodes
-	private NodeId nodeId;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticatedEchoBroadcastStrategy.class);
 
 	private List<IMessage> echoMessages = new LinkedList<IMessage>();
 
-	private KafkaMessageProducer producer;
-
 	List<BroadcastEvent> broadcastEventsList = new ArrayList<>();
 
-	private boolean maybeDontSendMessage = false;
-	private boolean maybeSendRedundantMessages = false;
-	private boolean maybeAlterMessageContent = false;
-
-	public AuthenticatedEchoBroadcastStrategy(int _N, int _f) throws Exception {
-		this.N = _N;
-		this.f = _f;
+	public AuthenticatedEchoBroadcastStrategy(int _N, int _f, NodeId nodeId) throws Exception {
+		super(_N, _f, nodeId);
 		sentEcho = false;
 		delivered = false;
-		
 	}
-	
 
 	@Override
-	public boolean executeStrategy(IMessage message) throws Exception {
+	public boolean executeStrategy(IMessage message,long latency) throws Exception {
 
 		// Drop the message
 		if (maybeDontSendMessage && dropMessage()) {
@@ -67,18 +54,13 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		if (MessageType.SEND.equals(message.getType())) {
 			if (message.getSenderId().equals(nodeId) && !sentEcho) {
 				// If this node is the sender of the SEND message
-				sentEcho = true;
-				// Add the sender's own echo message in the echoMessages map
-				// Message echoMessage = new Message(nodeId, message.getContent(),
-				// MessageType.ECHO,
-				// message.getIteration());
-				// echoMessages.add(echoMessage);
-				// Broadcast the original SEND message
 				if (maybeAlterMessageContent) { // Alter the message
 					LOGGER.warn("Node : {}  Message Altered ", nodeId);
 					message = alterMessage(message);
 				}
-				broadcastMessage(message);
+				sentEcho = true;
+				// Broadcast the original SEND message
+				broadcastMessage(message,latency);
 			} else {
 				// If this node is not the sender of the SEND message
 				// Create a new ECHO message and broadcast it
@@ -90,10 +72,10 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 				}
 				if (maybeSendRedundantMessages) {
 					LOGGER.warn("Node : {}  Flooding Messaged ", nodeId);
-					floodMessages(echoMessage);
+					floodMessages(echoMessage,latency);
 				} else {
 					echoMessages.add(echoMessage);
-					broadcastMessage(echoMessage);
+					broadcastMessage(echoMessage,latency);
 				}
 			}
 
@@ -101,7 +83,7 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 			echoMessages.add(message);
 		}
 		int echoCount = getEchoCount(message);
-		if (echoCount > ((N - f) / 2) + 1 && !delivered && isNodeLeader(nodeId)) {
+		if (echoCount > ((N - F) / 2) + 1 && !delivered && isNodeLeader(nodeId)) {
 			// if (echoCount >5 && !delivered && isNodeLeader(nodeId)) { //test logic
 			this.delivered = true;
 			LOGGER.info("Node : {}  Message delivered ", nodeId);
@@ -115,16 +97,13 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		// Create a new SEND message with the given content
 		Message sendMessage = new Message(nodeId, content, MessageType.SEND, generateIteration());
 
+		// Publish these events to the MQ
 		// Publish the Delivered event to the queue
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			BroadcastEvent event = new BroadcastEvent(sendMessage.getSenderId(), node.getNodeId(), MessageType.SEND,
-					NetworkSimulator.getInstance().getNodeName());
-			//broadcastEventsList.add(event);
+					NetworkSimulator.getInstance().getNodeName(),0);
 			producer.produce(event);
 		}
-		// Publish these events to the MQ
-		//producer.produce(broadcastEventsList);
-		//broadcastEventsList.clear();
 		// Broadcast the SEND message to all other nodes
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			try {
@@ -135,6 +114,26 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 			}
 		}
 		return true;
+	}
+
+	protected void broadcastMessage(IMessage message,long latency) {
+		// Create a new ECHO message with the same content as the original message
+		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO, generateIteration());
+
+		for (INode node : NetworkSimulator.getInstance().getNodes()) {
+			try {
+				node.publishMessage(echoMessage);
+				// Publish the Delivered event to the queue
+				if (!(isNodeLeader(nodeId) && message.getType().equals(MessageType.SEND))) {
+					BroadcastEvent event = new BroadcastEvent(echoMessage.getSenderId(), node.getNodeId(),
+							MessageType.ECHO, NetworkSimulator.getInstance().getNodeName(),latency);
+					producer.produce(event);
+				}
+			} catch (InterruptedException e) {
+				LOGGER.info("Node : {} Thread interuppted while broadcasting.", nodeId);
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 	@Override
@@ -165,31 +164,9 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		return false;
 	}
 
-	private void broadcastMessage(IMessage message) {
-		// Create a new ECHO message with the same content as the original message
-		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO, generateIteration());
-
-		for (INode node : NetworkSimulator.getInstance().getNodes()) {
-			try {
-				node.publishMessage(echoMessage);
-				// Publish the Delivered event to the queue
-				// if(!message.getSenderId().getId().equals(node.getNodeId().getId())) {
-				if (!(isNodeLeader(nodeId) && message.getType().equals(MessageType.SEND))) {
-					BroadcastEvent event = new BroadcastEvent(echoMessage.getSenderId(), node.getNodeId(),
-							MessageType.ECHO, NetworkSimulator.getInstance().getNodeName());
-					producer.produce(event);
-				}
-			} catch (InterruptedException e) {
-				LOGGER.info("Node : {} Thread interuppted while broadcasting.", nodeId);
-				Thread.currentThread().interrupt();
-			}
-		}
-	}
-
-	@Override
-	public void setNodeId(NodeId nodeId) {
-		this.nodeId = nodeId;
-	}
+	/*
+	 * @Override public void setNodeId(NodeId nodeId) { this.nodeId = nodeId; }
+	 */
 
 	private boolean isNodeLeader(NodeId id) {
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
@@ -198,22 +175,6 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Generates a unique message ID.
-	 * 
-	 * @return the generated message ID
-	 */
-	protected AtomicLong generateIteration() {
-		AtomicLong idCounter = new AtomicLong();
-		return idCounter;
-	}
-
-	public void close() {
-		if (producer != null) {
-			producer.close();
-		}
 	}
 
 	@Override
@@ -230,12 +191,12 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 		return rand.nextInt(100) < 50; // 50% chance to behave as a Byzantine node and not send a message
 	}
 
-	private void floodMessages(IMessage message) throws Exception {
+	private void floodMessages(IMessage message,long latency) throws Exception {
 		Random rand = new Random();
 		if (rand.nextInt(100) < 50) { // 50% chance to behave as a Byzantine node
 			for (int i = 0; i < 5; i++) {
 				echoMessages.add(message);
-				broadcastMessage(message);
+				broadcastMessage(message,latency);
 			}
 		}
 	}
@@ -250,33 +211,11 @@ public final class AuthenticatedEchoBroadcastStrategy implements IBroadcastStrat
 	}
 
 	@Override
-	public void flood() {
-		this.maybeSendRedundantMessages = true;
-
-	}
-
-	@Override
-	public void startDropping() {
-		this.maybeDontSendMessage = true;
-	}
-
-	@Override
-	public void startMessageTamper() {
-		this.maybeAlterMessageContent = true;
-	}
-
-	@Override
 	public void publishNotDelivered(IMessage message) {
-		BroadcastEvent event = new BroadcastEvent(nodeId, nodeId,
-				MessageType.NOTDELIVERED, NetworkSimulator.getInstance().getNodeName());
+		BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.NOTDELIVERED,
+				NetworkSimulator.getInstance().getNodeName(),0);
 		producer.produce(event);
-		
-	}
 
-	@Override
-	public void setMQProducer(KafkaMessageProducer mqProducer) {
-		this.producer = mqProducer;
-		
 	}
 
 }

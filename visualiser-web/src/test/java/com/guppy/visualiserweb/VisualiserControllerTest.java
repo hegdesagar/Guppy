@@ -17,9 +17,9 @@ public class VisualiserControllerTest {
 		
 		if(flg) {
 		// Create nodes
-		Node nodeA = new Node(new NodeData("a"));
-		Node nodeB = new Node(new NodeData("b"));
-		Node nodeC = new Node(new NodeData("d"));
+		Node nodeA = new Node(new NodeData("a","leader"));
+		Node nodeB = new Node(new NodeData("b",""));
+		Node nodeC = new Node(new NodeData("d",""));
 
 		// Create edges
 		Edge edgeAB = new Edge(new EdgeData("ab", 1, nodeA.getNodeData().getId(), nodeB.getNodeData().getId()));
@@ -48,9 +48,9 @@ public class VisualiserControllerTest {
 		
 		}else {
 			// Create nodes
-			Node nodeA = new Node(new NodeData("a"));
-			Node nodeB = new Node(new NodeData("b"));
-			Node nodeC = new Node(new NodeData("c"));
+			Node nodeA = new Node(new NodeData("a","leader"));
+			Node nodeB = new Node(new NodeData("b",""));
+			Node nodeC = new Node(new NodeData("c",""));
 
 			// Create edges
 			/*Edge edgeAB = new Edge(new EdgeData("ab", 1, nodeA.getNodeData().getId(), nodeB.getNodeData().getId()));

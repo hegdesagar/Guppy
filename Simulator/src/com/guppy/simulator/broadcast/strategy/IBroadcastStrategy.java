@@ -9,11 +9,11 @@ import com.guppy.simulator.producermq.KafkaMessageProducer;
 
 public interface IBroadcastStrategy {
 
-	boolean executeStrategy(IMessage message) throws Exception;
+	boolean executeStrategy(IMessage message, long latency) throws Exception;
 
 	boolean leaderBroadcast(MessageContent content);
 
-	void setNodeId(NodeId nodeId);
+	//void setNodeId(NodeId nodeId);
 
 	boolean isDelivered();
 

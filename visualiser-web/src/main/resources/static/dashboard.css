@@ -191,3 +191,11 @@ footer {
     background-color: #e9ecef;
 }
 
+/* image css */
+.custom-spacing {
+    margin-top: 20px;  
+    width: 50%;    
+    height: auto;  
+}
+
+

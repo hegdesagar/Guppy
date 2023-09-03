@@ -15,7 +15,8 @@ public class NetworkSimulatorTest {
 				@Override
 				public void run() {
 					
-					simulator.startSimulation(5,"AuthenticatedEchoBroadcast",1);
+					//simulator.startSimulation(5,"AuthenticatedEchoBroadcast",1);
+					simulator.startSimulation(5,"CPABroadcastStrategy", 2);
 					
 				}
 			};
@@ -23,7 +24,7 @@ public class NetworkSimulatorTest {
 			Thread th = new Thread(t);
 			th.start();
 			
-			Thread.sleep(600);
+			Thread.sleep(60000);
 			System.out.println("NOw will try to inject faults");
 			boolean result = simulator.injectFault("node-1");
 			

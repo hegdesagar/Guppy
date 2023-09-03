@@ -18,7 +18,7 @@ import com.guppy.simulator.common.typdef.NodeId;
 public abstract class AbstractMessageModel implements IMessage {
 
 	public enum MessageType {
-		SEND, ECHO , DELIVERED, NOTDELIVERED
+		SEND, ECHO , DELIVERED, NOTDELIVERED,INIT,READY
 	};
 	
 	protected MessageId messageId;
@@ -76,6 +76,14 @@ public abstract class AbstractMessageModel implements IMessage {
 
 	public void setIteration(AtomicLong iteration) {
 		this.iteration = iteration;
+	}
+	
+	public LocalDateTime getTimeStamp() {
+		return timeStamp;
+	}
+
+	public void setTimeStamp(LocalDateTime timeStamp) {
+		this.timeStamp = timeStamp;
 	}
 		
 
