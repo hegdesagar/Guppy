@@ -169,7 +169,7 @@ var sendToDeliverChart = new Chart(ctxDeliver, {
     type: 'line',
     data: {
         datasets: [{
-            label: 'Send-to-Deliver Duration',
+            label: 'Send-to-Deliver/Not Deliver Duration',
             borderColor: 'rgb(255, 99, 132)', // Color of the line
             data: [],
             fill: false,

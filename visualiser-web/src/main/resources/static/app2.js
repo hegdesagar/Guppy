@@ -72,7 +72,7 @@ window.onload = function() {
 	cy.getElementById('a').addClass('leader');
 
 	//event box
-	const eventText = 'a' + '->' + 'c' + '\n' + 'SEND';
+	const eventText = 'SEND';
 	//const eventText = 'node-0 ' + '->' + ' node-2' + '\n' + 'SEND';
 	addEvent(eventText, 'red');
 }
@@ -155,7 +155,7 @@ stompClient.onConnect = (frame) => {
 
 		const eventText = eventType;
 
-		if (eventType === 'SEND') {
+		if (eventType === 'SEND' || eventType === 'INIT') {
 			console.log("SEND Egde : ",edgeHighlight);
 			cy.getElementById(edgeHighlight).style({
 				'line-color': 'green',
@@ -205,7 +205,7 @@ stompClient.onConnect = (frame) => {
 		
 		//update latency
 		const latency = mqRecord.timeStamp;
-		if (eventType !== "SEND" && eventType !== "DELIVERED" && eventType !== "NOTDELIVERED" && latency !== 0) {
+		if (eventType !== "INIT" && eventType !== "SEND" && eventType !== "DELIVERED" && eventType !== "NOTDELIVERED" && latency !== 0) {
 			console.log('latency ', latency);
 			updateNodeDataset(senderNode.id, latency);
 		}

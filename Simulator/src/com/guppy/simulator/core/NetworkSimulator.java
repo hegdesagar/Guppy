@@ -2,13 +2,16 @@ package com.guppy.simulator.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.guppy.simulator.broadcast.strategy.AuthenticatedEchoBroadcastStrategy;
+import org.reflections.Reflections;
+
 import com.guppy.simulator.broadcast.strategy.IBroadcastStrategy;
+import com.guppy.simulator.broadcast.strategy.annotation.BroadCastStrategy;
 import com.guppy.simulator.common.Constants;
 import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.distributed.node.INode;
@@ -29,8 +32,6 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	private volatile Integer networkLatency = 1;
 
 	private Integer faultNodesInjected = 0;
-
-	// private Map<NodeId, Future<?>> futureList = new HashMap<>();
 
 	private NetworkSimulator() {
 		nodeList = new ArrayList<INode>();
@@ -55,19 +56,17 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 		service = Executors.newFixedThreadPool(noOfNodes, daemonThreadFactory);
 
-		// TODO remove these hardcoded values
-		//strategy = "AuthenticatedEchoBroadcast";
-		faults = 2;
-		// TODO end
-
-		// List to hold all the Threads
-		// List<Thread> threads = new ArrayList<>();
 		Controller controller = new Controller();
-
+		
 		// First create the leader node and dont submit it as it will trigger the
 		// broadcast
 		NodeId leaderNodeId = generateNodeId();
-		IBroadcastStrategy leaderBroadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults,leaderNodeId);
+		IBroadcastStrategy leaderBroadStrat = getStrategyObject(strategy,noOfNodes, faults,leaderNodeId);
+		if(leaderBroadStrat==null) {
+			System.out.println("Exception........in Selected Strategy");
+			return;
+		}
+		//IBroadcastStrategy leaderBroadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults,leaderNodeId);
 		//IBroadcastStrategy leaderBroadStrat = new CPABroadcastStrategy(noOfNodes, faults,leaderNodeId);
 		Node leaderNode = new Node(leaderBroadStrat, noOfNodes, faults, controller, leaderNodeId, true);
 		nodeList.add(leaderNode);
@@ -80,7 +79,12 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 				NodeId nodeId = generateNodeId();
 				// Create an object of the strategy we are going to use
 				//IBroadcastStrategy broadStrat = new CPABroadcastStrategy(noOfNodes, faults,nodeId);
-				IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults,nodeId);
+				//IBroadcastStrategy broadStrat = new AuthenticatedEchoBroadcastStrategy(noOfNodes, faults,nodeId);
+				IBroadcastStrategy broadStrat = getStrategyObject(strategy,noOfNodes, faults,nodeId);
+				if(broadStrat==null) {
+					System.out.println("Exception........in Selected Strategy");
+					return;
+				}
 				Node node = new Node(broadStrat, noOfNodes, faults, controller, nodeId, false);
 				nodeList.add(node);
 				nodeName.add(nodeId);
@@ -234,5 +238,28 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		}
 		return false;
 	}
+	
+	private IBroadcastStrategy getStrategyObject(String implementation,int _N, int _f, NodeId nodeId) {
+	    Reflections reflections = new Reflections("com.guppy.simulator.broadcast.strategy");
+	    Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(BroadCastStrategy.class);
+
+	    for (Class<?> clazz : annotatedClasses) {
+	        BroadCastStrategy annotation = clazz.getAnnotation(BroadCastStrategy.class);
+	        if (annotation.value().equals(implementation)) {
+	            try {
+	                // Check if the class implements IBroadcastStrategy
+	                if(IBroadcastStrategy.class.isAssignableFrom(clazz)) {
+	                	return (IBroadcastStrategy) clazz.getDeclaredConstructor(int.class, int.class, NodeId.class).newInstance(_N, _f, nodeId);
+	                } else {
+	                    throw new RuntimeException("Class " + clazz.getName() + " does not implement IBroadcastStrategy");
+	                }
+	            } catch (Exception e) {
+	                throw new RuntimeException("Failed to instantiate class " + clazz.getName(), e);
+	            }
+	        }
+	    }
+	    return null; 
+	}
+
 
 }

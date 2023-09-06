@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.guppy.simulator.broadcast.message.data.AbstractMessageModel.MessageType;
 import com.guppy.simulator.common.typdef.MessageContent;
+import com.guppy.simulator.common.typdef.MessageId;
 import com.guppy.simulator.common.typdef.NodeId;
 
 public interface IMessage {
@@ -24,5 +25,7 @@ public interface IMessage {
 	public LocalDateTime getTimeStamp();
 
 	public void setTimeStamp(LocalDateTime timeStamp);
+
+	public MessageId getMessageId();
 
 }

@@ -45,4 +45,9 @@ public class Message extends AbstractMessageModel {
 		return this.messageContent;
 	}
 
+	@Override
+	public MessageId getMessageId() {
+		return messageId;
+	}
+
 }

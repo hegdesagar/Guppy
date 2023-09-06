@@ -1,6 +1,5 @@
 package com.guppy.simulator.broadcast.strategy;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -32,8 +31,6 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticatedEchoBroadcastStrategy.class);
 
 	private List<IMessage> echoMessages = new LinkedList<IMessage>();
-
-	List<BroadcastEvent> broadcastEventsList = new ArrayList<>();
 
 	public AuthenticatedEchoBroadcastStrategy(int _N, int _f, NodeId nodeId) throws Exception {
 		super(_N, _f, nodeId);
@@ -183,7 +180,6 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		sentEcho = false;
 		delivered = false;
 		echoMessages.clear();
-		broadcastEventsList.clear();
 	}
 
 	private boolean dropMessage() {
