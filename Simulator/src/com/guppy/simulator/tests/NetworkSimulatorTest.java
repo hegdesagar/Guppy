@@ -1,38 +1,42 @@
 package com.guppy.simulator.tests;
 
+
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 import com.guppy.simulator.core.ISimulator;
 import com.guppy.simulator.core.NetworkSimulator;
 
 public class NetworkSimulatorTest {
 
-	public static void main(String[] args) {
+	@Test
+	 public void SimulatorInjectFaultTest() {
 		
 		ISimulator simulator = NetworkSimulator.getInstance();
+		String IMPLEMENTATION = "AuthenticatedEchoBroadcast";
+		int nodes = 5;
+		int faults = 2;
+		
 		try {
-			//simulator.simulateNetwork(5,"AuthenticatedEchoBroadcast",1);
 			Runnable t = new Runnable() {
-				
 				@Override
 				public void run() {
-					
-					//simulator.startSimulation(5,"AuthenticatedEchoBroadcast",1);
-					simulator.startSimulation(5,"CPABroadcastStrategy", 2);
-					
+					simulator.startSimulation(nodes,IMPLEMENTATION,faults);
 				}
 			};
 			
 			Thread th = new Thread(t);
 			th.start();
 			
-			Thread.sleep(60000);
-			System.out.println("NOw will try to inject faults");
+			Thread.sleep(6000);
+			System.out.println("Now will try to inject faults");
 			boolean result = simulator.injectFault("node-1");
+			assertTrue(result);
 			
-			System.out.println("Is the node stopped : "+result);
-			
+			//Stop the simulation
+			simulator.stopSimulation();
 			
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			System.out.println("Some Error Occured");
 			e.printStackTrace();
 		} 

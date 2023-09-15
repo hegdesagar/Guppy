@@ -21,6 +21,7 @@ import com.guppy.simulator.producermq.KafkaMessageProducer;
 
 /**
  * 
+ *
  * @author HegdeSagar
  *
  */
@@ -53,18 +54,14 @@ public class Node implements INode {
 	public Node(IBroadcastStrategy _strategy, int _N, int _F, Controller controller, NodeId _nodeId, boolean isLeader)
 			throws Exception {
 		this.nodeId = _nodeId;
-		//_strategy.setNodeId(this.nodeId);
 		this.strategy = _strategy;
 		messageQueue = new LinkedBlockingQueue<IMessage>();
 		this.F = _F;
 		this.N = _N;
 		this.controller = controller;
 		this.isLeader = isLeader;
-		
 		this.producer = new KafkaMessageProducer();
-		
 		strategy.setMQProducer(producer);
-
 	}
 
 	@Override
@@ -92,21 +89,15 @@ public class Node implements INode {
 				IMessage message = messageQueue.poll(500+ NetworkSimulator.getInstance().getNetworkLatency(),
 						TimeUnit.MILLISECONDS);
 				 
-				
 				if(isInterrupt) {
 					messageQueue.clear();
 					strategy.reset();
 				}
 				if (message != null && !isInterrupt) {
-					
 					//Calculate Latency for the message
-					
 					LocalDateTime now = LocalDateTime.now();
 					Duration duration = Duration.between(message.getTimeStamp(), now);
 					long latencyInMillis = duration.toMillis();
-					
-					System.out.println("NOde Latency calculated ::::::::::::::::::::::::: "+latencyInMillis);
-					
 					
 					//check for tampering
 					if(!MESSAGE_CONTENT_STRING.equals(message.getContent().toString())) {
@@ -118,11 +109,6 @@ public class Node implements INode {
 					if (strategy.executeStrategy(message,latencyInMillis)) {
 						if (isLeader()) { // Leader initiates reset
 							controller.initiateReset(N - 1);
-							System.out.println(" The Message was delivered by node leader : " + nodeId);
-							//System.out.println("Node :" + nodeId + " is elected as leader!!!.... and Simulation Count :"
-							//		+ simulationCount);
-							//strategy = new AuthenticatedEchoBroadcastStrategy(N, F);
-							//strategy.setNodeId(nodeId);
 							strategy.reset();
 							messageQueue.clear();// Added this to clear the queue once the message is delivered
 							controller.awaitLatchAndReset();

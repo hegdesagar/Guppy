@@ -18,9 +18,28 @@ import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
 
 /**
+ * Implementation of an authenticated echo broadcasting strategy. 
+ * It ensures reliable broadcasting of messages even in the presence of Byzantine failures, 
+ * which can manifest in the form of nodes altering messages, not sending messages, or flooding the network with redundant messages.
+ * <p>
+ * The strategy works as follows:
+ * <ul>
+ *   <li>A leader node sends a message.</li>
+ *   <li>Receiving nodes, upon getting the message, send an echo message to all other nodes.</li>
+ *   <li>If a node receives more than (N - F) / 2 echo messages for the same original message, 
+ *       where N is the total number of nodes and F is the number of faulty nodes, 
+ *       it considers the message delivered.</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Nodes can also simulate Byzantine behaviors, such as message alteration, message drop, and message flooding.
+ * </p>
+ * <p>
+ * This strategy extends the {@code AbstractBroadcastStrategy} and implements the {@code IBroadcastStrategy} interface.
+ * </p>
  * 
  * @author SagarHegde
- *
+ * @see IBroadcastStrategy
  */
 @BroadCastStrategy("AuthenticatedEchoBroadcast")
 public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastStrategy implements IBroadcastStrategy {

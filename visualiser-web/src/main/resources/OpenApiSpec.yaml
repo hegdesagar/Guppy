@@ -1,0 +1,53 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Broadcasting Implementation
+  description: API endpoints related to the strategy implementaion for broadcasting message algorithms.
+  contact:
+    name: HegdeSagar
+paths:
+  /api/broadcasting_impl:
+    get:
+      summary: Retrieves broadcasting strategies for a dropdown
+      description: This endpoint fetches a list of registered broadcasting strategies, ideal for populating dropdown menus in a UI.
+      responses:
+        200:
+          description: A list of broadcasting strategies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DropdownItem'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    DropdownItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the broadcasting strategy.
+        name:
+          type: string
+          description: The name of the broadcasting strategy.
+      required:
+        - id
+        - name
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+      required:
+        - code
+        - message

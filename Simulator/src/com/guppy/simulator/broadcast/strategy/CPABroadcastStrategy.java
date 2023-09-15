@@ -18,7 +18,7 @@ import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
 
-@BroadCastStrategy("CPABroadcast")
+@BroadCastStrategy("BrachasBroadcast")
 public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements IBroadcastStrategy {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(CPABroadcastStrategy.class);

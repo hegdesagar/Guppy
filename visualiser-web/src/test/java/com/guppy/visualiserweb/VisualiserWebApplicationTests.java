@@ -24,9 +24,8 @@ class VisualiserWebApplicationTests {
 	void contextLoads() {
 	}
 	
-	@RunWith(SpringRunner.class)
-	@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-	public class AuthenticatedEchoBroadcastStrategyTest {
+	@Test
+	public void AuthenticatedEchoBroadcastStrategyTest {
 
 	    @Autowired
 	    private SimpMessagingTemplate template;
@@ -44,8 +43,9 @@ class VisualiserWebApplicationTests {
 
 	        // Call the simulate method
 	        controller.simulate(options);
+	        
+	        Thread.sleep(10000);
 
-	        //Mockito.when(kafkaMessageConsumer.consume()).thenReturn(yourMockedRecords);
 
 	    }
 	}

@@ -112,13 +112,13 @@ var throughputChart = new Chart(throughputCtx, {
 let messageCount = 0;
 let throughputInterval;
 
-// Assuming this is called every time you receive a message
+
 function onMessageReceived() {
 	messageCount++;
 }
 
 // Update the throughput every second
-setInterval(function() {
+/*setInterval(function() {
 	const currentTime = new Date().getTime();
 
 	// Update the chart
@@ -130,7 +130,7 @@ setInterval(function() {
 
 	// Reset message count
 	messageCount = 0;
-}, 1000);
+}, 1000);*/
 
 
 function startThroughputMonitoring() {

@@ -57,9 +57,9 @@ window.onload = function() {
 		],
 
 		edges: [
-			{ data: { id: 'ab', weight: 1, source: 'a', target: 'b', arrow: 'triangle', label: 'ab' } },
-			{ data: { id: 'ac', weight: 1, source: 'a', target: 'c', arrow: 'triangle', label: 'ac' } },
-			{ data: { id: 'ba', weight: 1, source: 'b', target: 'a', arrow: 'triangle', label: 'ba' } },
+			{ data: { id: 'ab', weight: 1, source: 'a', target: 'b', arrow: 'triangle', label: 'SEND' } },
+			{ data: { id: 'ac', weight: 1, source: 'a', target: 'c', arrow: 'triangle', label: '' } },
+			{ data: { id: 'ba', weight: 1, source: 'b', target: 'a', arrow: 'triangle', label: '' } },
 			{ data: { id: 'bc', weight: 1, source: 'b', target: 'c', arrow: 'triangle', label: '' } },
 			{ data: { id: 'ca', weight: 1, source: 'c', target: 'a', arrow: 'triangle', label: '' } },
 			{ data: { id: 'cb', weight: 1, source: 'c', target: 'b', arrow: 'triangle', label: '' } }
@@ -70,11 +70,18 @@ window.onload = function() {
 	drawGraph(elements, '#a');
 	highlightSpecificElements('a', 'b', 'ab', 'send');
 	cy.getElementById('a').addClass('leader');
+	
+	cy.getElementById('ab').style({
+				'line-color': 'green',
+				'target-arrow-color': 'green',
+				'label': eventType
+			});
+			
 
 	//event box
 	const eventText = 'SEND';
 	//const eventText = 'node-0 ' + '->' + ' node-2' + '\n' + 'SEND';
-	addEvent(eventText, 'red');
+	addEvent(eventText, 'green');
 }
 
 function addDropdownClickListeners() {
@@ -129,99 +136,84 @@ stompClient.onConnect = (frame) => {
 		alertElement.classList.add('alert-info');
 		drawGraph(graphData, '#node-0');
 
-		//publish the latency and throughput graph
-		/*const nodeLists = graphData.nodes;
-		nodeLists.forEach(node => {
-			console.log(node.data.id);
-			addNodeDataToChart(node.data.id, [5,6,8,9], "blue");
-		});*/
 
 	});
 
 
-	highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
-		// First, reset the styles for all nodes and edges to their base styles
-		hideAllEdges();
-		let mqRecord = JSON.parse(message.body); // This will now be an array
+// Subscribe to 'highlight_nodes' topic to receive node highlighting updates.
+highlightNodesSubscription = stompClient.subscribe('/topic/highlight_nodes', (message) => {
 
-		const senderNode = mqRecord.senderId;
-		const receiverNode = mqRecord.receiverId;
-		const edgeHighlight = mqRecord.edgeHighlight;
-		const eventType = mqRecord.eventType;
-		const leadernode = mqRecord.leaderNode;
+    // Reset all node and edge styles to default before applying new styles.
+    hideAllEdges();
 
-		//update throughput
-		onMessageReceived();
+    // Parse the received message to extract the relevant details.
+    let mqRecord = JSON.parse(message.body);
 
-		const eventText = eventType;
+    const senderNode = mqRecord.senderId;
+    const edgeHighlight = mqRecord.edgeHighlight;
+    const eventType = mqRecord.eventType;
+    const leadernode = mqRecord.leaderNode;
 
-		if (eventType === 'SEND' || eventType === 'INIT') {
-			console.log("SEND Egde : ",edgeHighlight);
-			cy.getElementById(edgeHighlight).style({
-				'line-color': 'green',
-				'target-arrow-color': 'green',
-				'label': eventType
-			});
-			addEvent(eventText, 'green');
-		}
-		if (eventType === 'ECHO') {
-			cy.getElementById(edgeHighlight).style({
-				'line-color': 'blue',
-				'target-arrow-color': 'blue',
-				'label': eventType
-			});
-			addEvent(eventText, 'blue');
-		}
+    // Update throughput whenever a message is received.
+    onMessageReceived();
 
+	const eventText = eventType;
+    // Based on the event type, highlight the respective edges with appropriate colors.
+    if (eventType === 'SEND' || eventType === 'INIT') {
+        console.log("SEND Egde : ", edgeHighlight);
+        cy.getElementById(edgeHighlight).style({
+            'line-color': 'green',
+            'target-arrow-color': 'green',
+            'label': eventType
+        });
+        addEvent(eventText, 'green');
+    }
+    if (eventType === 'ECHO') {
+        cy.getElementById(edgeHighlight).style({
+            'line-color': 'blue',
+            'target-arrow-color': 'blue',
+            'label': eventType
+        });
+        addEvent(eventText, 'blue');
+    }
 
-		// Apply styles to leader
-		cy.getElementById(leadernode).addClass('leader');
-		console.log('Event: ', eventType);
-		if (eventType == 'DELIVERED') {
-			//cy.getElementById(leadernode).style('background-color', 'green');
-			addEventToList('The Message is Delivered by Leader', 'black');
-			addEvent(eventText, 'black');
-		} else {
-			cy.getElementById(leadernode).addClass('leader');
-		}
-		if (eventType == 'NOTDELIVERED') {
-			//cy.getElementById(leadernode).style('background-color', 'black');
-			addEventToList('The Message was not Delivered by Leader', 'red');
-			addEvent(eventText, 'red');
-		} else {
-			cy.getElementById(leadernode).addClass('leader');
-		}
+    // Highlight the leader node with a distinct style.
+    cy.getElementById(leadernode).addClass('leader');
+    // Update events list based on whether a message was delivered or not.
+    if (eventType == 'DELIVERED') {
+        addEventToList('The Message is Delivered by Leader', 'black');
+        addEvent(eventText, 'black');
+    } else {
+        cy.getElementById(leadernode).addClass('leader');
+    }
+    if (eventType == 'NOTDELIVERED') {
+        addEventToList('The Message was not Delivered by Leader', 'red');
+        addEvent(eventText, 'red');
+    } else {
+        cy.getElementById(leadernode).addClass('leader');
+    }
 
-
-		// Apply styles to edge
-		/*cy.getElementById(edgeHighlight).style({
-			'line-color': 'pink',
-			'target-arrow-color': 'pink',
-			'label': eventType
-		});*/
-		const edgeConstant = cy.getElementById(edgeHighlight);
-		//edgeConstant.style('line-color', '#61bffc');
-		//edgeConstant.style('target-arrow-color', '#61bffc');
-		
-		//update latency
-		const latency = mqRecord.timeStamp;
-		if (eventType !== "INIT" && eventType !== "SEND" && eventType !== "DELIVERED" && eventType !== "NOTDELIVERED" && latency !== 0) {
-			console.log('latency ', latency);
-			updateNodeDataset(senderNode.id, latency);
-		}
-
-		//update send to deliver duration
-		if (eventType === "DELIVERED") {
-			updateSendToDeliverDuration(latency);
-			deliveredCount = deliveredCount + 1;
-			updateDeliveredCount(deliveredCount);
-		} else if (eventType === "NOTDELIVERED") {
-			notDeliveredCount = notDeliveredCount + 1;  // Get this from your data or logic
-			updateNotDeliveredCount(notDeliveredCount);
-		}
-		edgeConstant.show();
-
-	});
+    const edgeConstant = cy.getElementById(edgeHighlight);
+    // Update latency metrics if the event is not of type INIT, SEND, DELIVERED, NOTDELIVERED and if latency is 
+    //non-zero.
+    const latency = mqRecord.timeStamp;
+    if (eventType !== "INIT" && eventType !== "SEND" && eventType !== "DELIVERED" && eventType !== "NOTDELIVERED" 
+    	&& latency !== 0) {
+        updateNodeDataset(senderNode.id, latency);
+    }
+    
+    // Update send-to-deliver duration metrics and delivered message count.
+    if (eventType === "DELIVERED") {
+        updateSendToDeliverDuration(latency);
+        deliveredCount = deliveredCount + 1;
+        updateDeliveredCount(deliveredCount);
+    } else if (eventType === "NOTDELIVERED") {
+        notDeliveredCount = notDeliveredCount + 1;
+        updateNotDeliveredCount(notDeliveredCount);
+    }
+    // Show the updated edge.
+    edgeConstant.show();
+});
 
 	alertSubscription = stompClient.subscribe('/topic/alert_updates', (alertMessage) => {
 		console.log('Received alert update', alertMessage);
@@ -307,34 +299,44 @@ document.querySelectorAll('#implementation .dropdown-item').forEach(item => {
 	});
 });
 
+// The 'publish' function triggers the simulation by sending the user-specified configurations.
 function publish() {
-	const nodesValue = $("#nodes").val();
-	const faultsValue = $("#faults").val();
-	const timelineValue = $('#customRange1').val();
-	//const selectedImplementation = document.querySelector('#implementation .dropdown-item').textContent;
-	const selectedImplementation = document.getElementById('dropdownMenuButton').textContent;
+    // Retrieve the number of nodes from the input.
+    const nodesValue = $("#nodes").val();
 
-	//initialize the latency graph nodes
-	initializeNodes(nodesValue);
+    // Retrieve the acceptable faults from the input.
+    const faultsValue = $("#faults").val();
 
-	let messageJson = JSON.stringify({
-		'nodes': nodesValue,
-		'implementation': selectedImplementation,
-		'timeline': timelineValue,
-		'faults': faultsValue
-	});
+    // Retrieve the timeline value from the custom range input.
+    const timelineValue = $('#customRange1').val();
 
+    // Get the selected algorithm/implementation from the dropdown menu.
+    const selectedImplementation = document.getElementById('dropdownMenuButton').textContent;
 
-	stompClient.publish({
-		destination: "/app/simulate",
-		body: messageJson
-	});
+    // Initialize the latency graph based on the number of nodes.
+    initializeNodes(nodesValue);
 
-	stompClient.publish({
-		destination: "/app/highlight",
-		body: messageJson
-	});
+    // Convert the user input into a JSON format.
+    let messageJson = JSON.stringify({
+        'nodes': nodesValue,
+        'implementation': selectedImplementation,
+        'timeline': timelineValue,
+        'faults': faultsValue
+    });
+
+    // Publish the simulation configuration to the server to initiate the simulation.
+    stompClient.publish({
+        destination: "/app/simulate",
+        body: messageJson
+    });
+
+    // Publish the simulation configuration to highlight specific aspects during the simulation.
+    stompClient.publish({
+        destination: "/app/highlight",
+        body: messageJson
+    });
 }
+
 
 $("#SimulationButton").click(function() {
 	if ($(this).text() == "Start") {
@@ -352,7 +354,6 @@ function connect() {
 	if (started) {
 		disconnect();
 		started = false;
-		// document.getElementById('SimulationButton').innerText = "Stop";
 	} else {
 		stompClient.activate(); //establish connection
 		//add delay to ensure connection is established before publish

@@ -1,0 +1,7 @@
+com.guppy.visualiser.consumermq
+com.guppy.visualiser.consumermq.data
+com.guppy.visualiserweb
+com.guppy.visualiserweb.common
+com.guppy.visualiserweb.controller
+com.guppy.visualiserweb.controller.rest
+com.guppy.visualiserweb.data.model

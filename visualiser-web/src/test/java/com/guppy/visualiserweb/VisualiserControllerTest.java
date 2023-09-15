@@ -3,6 +3,9 @@ package com.guppy.visualiserweb;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
 import com.guppy.visualiserweb.data.model.Edge;
 import com.guppy.visualiserweb.data.model.EdgeData;
 import com.guppy.visualiserweb.data.model.Elements;
@@ -10,8 +13,10 @@ import com.guppy.visualiserweb.data.model.NetworkGraph;
 import com.guppy.visualiserweb.data.model.Node;
 import com.guppy.visualiserweb.data.model.NodeData;
 
+@SpringBootTest
 public class VisualiserControllerTest {
 	
+	@Test
 	private void populateGraph(boolean flg) {
 		 NetworkGraph graph = new NetworkGraph();
 		
