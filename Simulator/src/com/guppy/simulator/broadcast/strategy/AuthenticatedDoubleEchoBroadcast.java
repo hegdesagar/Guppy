@@ -1,3 +1,22 @@
+/*
+====================================================
+Copyright (c) 2023 SagarH
+All Rights Reserved.
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose, without fee, and without a written agreement is hereby granted, 
+provide that the above copyright notice and this paragraph and the following two paragraphs appear in all copies.
+
+IN NO EVENT SHALL YOUR NAME BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
+SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING
+OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF YOU HAVE BEEN
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+SagarH SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND YOUR NAME HAS NO
+OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+====================================================
+*/
 package com.guppy.simulator.broadcast.strategy;
 
 import java.util.HashSet;
@@ -17,22 +36,44 @@ import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
 
+/**
+ * Represents the AuthenticatedDoubleEchoBroadcast strategy for broadcasting messages.
+ * This strategy uses a double echo mechanism to ensure message authenticity and 
+ * resilience against faulty nodes.
+ *
+ * @see AbstractBroadcastStrategy
+ * @see IBroadcastStrategy
+ */
 @BroadCastStrategy("AuthenticatedDoubleEchoBroadcast")
 public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy implements IBroadcastStrategy {
 
+	 /** Logger for the class. */
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticatedDoubleEchoBroadcast.class);
-	//private boolean sentEcho;
+	/** Indicates whether the message has been delivered. */
 	private boolean delivered;
+	/** Set to store messages that have been echoed. */
     private Set<IMessage> echoedMessages = new HashSet<>();
+    /** Set to store messages for which ready has been sent. */
     private Set<IMessage> readySentMessages = new HashSet<>();
+    /** Set to store received ready messages. */
     private Set<IMessage> readyReceivedMessages = new HashSet<>();
 
+    /**
+     * Constructor initializing the AuthenticatedDoubleEchoBroadcast strategy.
+     *
+     * @param _N      number of nodes
+     * @param _f      number of faulty nodes
+     * @param nodeId  the node ID
+     * @throws Exception 
+     */
 	public AuthenticatedDoubleEchoBroadcast(int _N, int _f, NodeId nodeId) throws Exception {
 		super(_N, _f, nodeId);
-		//sentEcho = false;
 		delivered = false;
 	}
 
+	/** 
+     * @inheritDoc 
+     */
 	@Override
     public boolean executeStrategy(IMessage message, long latency) throws Exception {
         if (maybeDontSendMessage && dropMessage()) {
@@ -57,6 +98,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
         return checkForDelivery(message);
     }
 
+	/** 
+     * Handles the sending of messages.
+     */
     private void handleSend(IMessage message, long latency) {
         if (!hasAlreadyEchoed(message)) {
             echoedMessages.add(message);
@@ -65,6 +109,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
         }
     }
 
+    /** 
+     * Handles the echoing of messages.
+     */
     private void handleEcho(IMessage message, long latency) {
         if (!hasAlreadySentReady(message)) {
             readySentMessages.add(message);
@@ -73,18 +120,30 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
         }
     }
 
+    /** 
+     * Handles ready messages.
+     */
     private void handleReady(IMessage message) {
         readyReceivedMessages.add(message);
     }
 
+    /** 
+     * Checks if a message has already been echoed.
+     */
     private boolean hasAlreadyEchoed(IMessage message) {
         return echoedMessages.contains(message);
     }
 
+    /** 
+     * Checks if a ready message has already been sent for a particular message.
+     */
     private boolean hasAlreadySentReady(IMessage message) {
         return readySentMessages.contains(message);
     }
 
+    /** 
+     * Counts the number of ready messages for a given message.
+     */
     private int countReadyMessages(IMessage message) {
         int count = 0;
         for (IMessage readyMessage : readyReceivedMessages) {
@@ -95,6 +154,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
         return count;
     }
 
+    /** 
+     * Checks if a message can be delivered.
+     */
     private boolean checkForDelivery(IMessage message) {
         if (countReadyMessages(message) > ((N - F) / 2) && !delivered) {
             delivered = true;
@@ -104,7 +166,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
         return false;
     }
 
-
+    /** 
+     * @inheritDoc 
+     */
 	@Override
 	public boolean leaderBroadcast(MessageContent content) {
 		// Create a new SEND message with the given content
@@ -129,6 +193,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
 		return true;
 	}
 
+	/** 
+     * Broadcasts a message to all nodes.
+     */
 	protected void broadcastMessage(IMessage message, long latency) {
 	    for (INode node : NetworkSimulator.getInstance().getNodes()) {
 	        try {
@@ -145,13 +212,18 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
 	        }
 	    }
 	}
-
+	
+	/** 
+     * @inheritDoc 
+     */
 	@Override
 	public boolean isDelivered() {
 		return delivered;
 	}
 
-
+	/** 
+     * Checks if a node is a leader.
+     */
 	private boolean isNodeLeader(NodeId id) {
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			if (node.getNodeId().equals(id)) {
@@ -161,6 +233,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
 		return false;
 	}
 
+	/** 
+     * @inheritDoc 
+     */
 	@Override
 	public void reset() {
 
@@ -171,12 +246,18 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
 		readyReceivedMessages.clear();
 	}
 
+	/** 
+     * Determines whether to drop a message.
+     */
 	private boolean dropMessage() {
 		Random rand = new Random();
 		return rand.nextInt(100) < 50; // 50% chance to behave as a Byzantine node and not send a message
 	}
 
-	private void floodMessages(IMessage message, long latency) throws Exception {
+	/** 
+     * Floods messages.
+     */
+	public void floodMessages(IMessage message, long latency) throws Exception {
 		Random rand = new Random();
 		if (rand.nextInt(100) < 50) { // 50% chance to behave as a Byzantine node
 			for (int i = 0; i < 5; i++) {
@@ -186,7 +267,10 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
 		}
 	}
 
-	private IMessage alterMessage(IMessage message) {
+	/** 
+     * Alters a message.
+     */
+	public IMessage alterMessage(IMessage message) {
 		Random rand = new Random();
 		if (rand.nextInt(100) < 50) { // 50% chance to behave as a Byzantine node
 			MessageContent content = new MessageContent("Tampered " + message.getContent());
@@ -195,6 +279,9 @@ public class AuthenticatedDoubleEchoBroadcast extends AbstractBroadcastStrategy 
 		return message;
 	}
 
+	/** 
+     * Publishes an undelivered message.
+     */
 	@Override
 	public void publishNotDelivered(IMessage message) {
 		BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.NOTDELIVERED,

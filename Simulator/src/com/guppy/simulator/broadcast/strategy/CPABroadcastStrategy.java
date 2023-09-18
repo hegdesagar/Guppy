@@ -1,3 +1,22 @@
+/*
+====================================================
+Copyright (c) 2023 SagarH
+All Rights Reserved.
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose, without fee, and without a written agreement is hereby granted, 
+provide that the above copyright notice and this paragraph and the following two paragraphs appear in all copies.
+
+IN NO EVENT SHALL YOUR NAME BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
+SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING
+OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF YOU HAVE BEEN
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+SagarH SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND YOUR NAME HAS NO
+OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+====================================================
+*/
 package com.guppy.simulator.broadcast.strategy;
 
 import java.util.HashMap;
@@ -18,6 +37,30 @@ import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.core.NetworkSimulator;
 import com.guppy.simulator.distributed.node.INode;
 
+/**
+ * Implementation of an Brachas broadcasting strategy. 
+ * It ensures reliable broadcasting of messages even in the presence of Byzantine failures, 
+ * which can manifest in the form of nodes altering messages, not sending messages, or flooding the network with redundant messages.
+ * <p>
+ * The strategy works as follows:
+ * <ul>
+ *   <li>A leader node sends a message.</li>
+ *   <li>Receiving nodes, upon getting the message, send an echo message to all other nodes.</li>
+ *   <li>If a node receives more than (N - F) / 2 echo messages for the same original message, 
+ *       where N is the total number of nodes and F is the number of faulty nodes, 
+ *       it considers the message delivered.</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Nodes can also simulate Byzantine behaviors, such as message alteration, message drop, and message flooding.
+ * </p>
+ * <p>
+ * This strategy extends the {@code AbstractBroadcastStrategy} and implements the {@code IBroadcastStrategy} interface.
+ * </p>
+ * 
+ * @author SagarHegde
+ * @see IBroadcastStrategy
+ */
 @BroadCastStrategy("BrachasBroadcast")
 public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements IBroadcastStrategy {
 
@@ -33,6 +76,9 @@ public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements I
 		super(_N, _f, nodeId);
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean executeStrategy(IMessage message,long latency) throws Exception {
 
@@ -88,6 +134,9 @@ public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements I
 		return false;
 	}
 
+	/*
+	 * Broadcast the message to other nodes
+	 */
 	private void broadcastMessage(IMessage message,long latency) {
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			try {
@@ -135,6 +184,9 @@ public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements I
 		LOGGER.info("Message delivered: {}", message.getContent());
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean leaderBroadcast(MessageContent content) {
 		// Create a new INIT message with the given content
@@ -157,11 +209,17 @@ public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements I
 		return true;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean isDelivered() {
 		return delivered;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void reset() {
 		delivered = false;
@@ -169,6 +227,9 @@ public class CPABroadcastStrategy extends AbstractBroadcastStrategy implements I
 		receivedMessages.clear();
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void publishNotDelivered(IMessage message) {
 		BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.NOTDELIVERED,

@@ -253,7 +253,7 @@ public class VisualiserController {
      * Endpoint to stop the ongoing simulation.
      */
 	@MessageMapping("/stop_simulation")
-	private void stopSimulation(){
+	public void stopSimulation(){
 		simulator.stopSimulation();
 		
 	}

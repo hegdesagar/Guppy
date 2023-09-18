@@ -1,3 +1,22 @@
+/*
+====================================================
+Copyright (c) 2023 SagarH
+All Rights Reserved.
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose, without fee, and without a written agreement is hereby granted, 
+provide that the above copyright notice and this paragraph and the following two paragraphs appear in all copies.
+
+IN NO EVENT SHALL YOUR NAME BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
+SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING
+OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF YOU HAVE BEEN
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+SagarH SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND YOUR NAME HAS NO
+OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+====================================================
+*/
 package com.guppy.simulator.core;
 
 import java.util.ArrayList;
@@ -17,6 +36,27 @@ import com.guppy.simulator.common.typdef.NodeId;
 import com.guppy.simulator.distributed.node.INode;
 import com.guppy.simulator.distributed.node.Node;
 
+/**
+ * Represents a simulator for network operations and behaviors. 
+ * The `NetworkSimulator` provides functionalities to simulate 
+ * different network scenarios and conditions, allowing for testing
+ * and analysis of network-based systems.
+ *
+ * <p>This class extends the {@link AbstractNetworkSimulator} to 
+ * offer concrete implementations of certain simulation behaviors 
+ * and also implements the {@link ISimulator} interface to ensure 
+ * adherence to the expected simulation protocol and is Singleton.</p>
+ *
+ * <p>As a final class, it cannot be subclassed, ensuring the integrity 
+ * of the simulation behavior defined in this class.</p>
+ *
+ *
+ *
+ * @author HegdeSagar
+ * @see AbstractNetworkSimulator
+ * @see ISimulator
+ * @version 1.0
+ */
 public final class NetworkSimulator extends AbstractNetworkSimulator implements ISimulator {
 
 	private static final AtomicLong idCounter = new AtomicLong();
@@ -33,6 +73,10 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	private Integer faultNodesInjected = 0;
 
+	/**
+     * Private constructor to ensure the singleton pattern for the NetworkSimulator.
+     * Initializes the nodeList, nodeName, system_in_Simulation, and sets a default network latency.
+     */
 	private NetworkSimulator() {
 		nodeList = new ArrayList<INode>();
 		system_in_Simulation = true;
@@ -40,14 +84,23 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		this.networkLatency = 100;
 	}
 
+	/**
+     * Retrieves the sole instance of the NetworkSimulator. If the instance does not exist,
+     * it initializes and returns it. This method also ensures that the available broadcast
+     * strategies are populated before returning the simulator instance.
+     *
+     * @return the single instance of the NetworkSimulator.
+     */
 	public static ISimulator getInstance() {
-		populateStrategies();
 		if (simulator == null) {
 			simulator = new NetworkSimulator();
 		}
 		return simulator;
 	}
 
+	/*
+	 * Get the nodes listed in the network
+	 */
 	public List<INode> getNodes() {
 		return nodeList;
 	}
@@ -131,6 +184,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		}
 	};
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void startSimulation(int noOfNodes, String strategy, Integer faults) {
 
@@ -146,18 +202,26 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void stopSimulation() {
 		system_in_Simulation = false;
 		service.shutdown();
 	}
 
+	/*
+	 * Elects a leader.
+	 * TODO : this methods needs to be implemented in future
+	 */
 	public void electLeader() {
 		// TODO elect a legitimate leader
-		// System.out.println("no of nodes created :+"+nodeList.size());
-		// nodeList.get(0).setLeader(true);
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean injectFault(String nodeId) {
 		// Iterate over all the node and if found interrupt the node
@@ -171,51 +235,79 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		return false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean configNetworkLatency(int millSec) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean selectLeader(String nodeId) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
+	/*
+	 * Return true if the system is in Simulation , else false
+	 */
 	public boolean isSystemInSimulation() {
 		return system_in_Simulation;
 	}
 
+	/*
+	 * Set the boolean flag in simulation is in progress or not
+	 */
 	public void setSystemInSimulation(boolean flag) {
 		system_in_Simulation = flag;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public ArrayList<NodeId> getNodeName() {
 		return nodeName;
 	}
 
+	/*
+	 * Generates nodeid
+	 */
 	protected synchronized NodeId generateNodeId() {
 		String idVal = String.valueOf(idCounter.getAndIncrement());
 		return new NodeId(Constants.NODE_ID_PREFIX.concat(idVal));
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void introduceLatencyInNetwork(int latency) {
 		this.networkLatency = latency;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public synchronized Integer getNetworkLatency() {
 		return networkLatency;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public int getNoOfFaultNodesInjected() {
 		return faultNodesInjected;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean flood(String nodeId) {
 		for (INode node : nodeList) {
@@ -228,6 +320,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		return false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean dropMessage(String nodeId) {
 		for (INode node : nodeList) {
@@ -240,6 +335,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		return false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean alterMessage(String nodeId) {
 		for (INode node : nodeList) {
@@ -252,6 +350,9 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 		return false;
 	}
 	
+	/*
+	 * Return the strategy object for the {@link IBroadcastStrategy} implementation
+	 */
 	private IBroadcastStrategy getStrategyObject(String implementation,int _N, int _f, NodeId nodeId) {
 	    Reflections reflections = new Reflections("com.guppy.simulator.broadcast.strategy");
 	    Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(BroadCastStrategy.class);
@@ -273,6 +374,4 @@ public final class NetworkSimulator extends AbstractNetworkSimulator implements 
 	    }
 	    return null; 
 	}
-
-
 }

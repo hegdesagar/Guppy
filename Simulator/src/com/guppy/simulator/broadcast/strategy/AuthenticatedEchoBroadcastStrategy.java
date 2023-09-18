@@ -1,3 +1,22 @@
+/*
+====================================================
+Copyright (c) 2023 SagarH
+All Rights Reserved.
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose, without fee, and without a written agreement is hereby granted, 
+provide that the above copyright notice and this paragraph and the following two paragraphs appear in all copies.
+
+IN NO EVENT SHALL YOUR NAME BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
+SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING
+OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF YOU HAVE BEEN
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+SagarH SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND YOUR NAME HAS NO
+OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+====================================================
+*/
 package com.guppy.simulator.broadcast.strategy;
 
 import java.util.LinkedList;
@@ -57,6 +76,9 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		delivered = false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean executeStrategy(IMessage message,long latency) throws Exception {
 
@@ -100,7 +122,6 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		}
 		int echoCount = getEchoCount(message);
 		if (echoCount > ((N - F) / 2) + 1 && !delivered && isNodeLeader(nodeId)) {
-			// if (echoCount >5 && !delivered && isNodeLeader(nodeId)) { //test logic
 			this.delivered = true;
 			LOGGER.info("Node : {}  Message delivered ", nodeId);
 			return true;
@@ -108,6 +129,9 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		return false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean leaderBroadcast(MessageContent content) {
 		// Create a new SEND message with the given content
@@ -132,6 +156,9 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		return true;
 	}
 
+	/*
+	 * Broadcast the message
+	 */
 	protected void broadcastMessage(IMessage message,long latency) {
 		// Create a new ECHO message with the same content as the original message
 		Message echoMessage = new Message(nodeId, message.getContent(), MessageType.ECHO, generateIteration());
@@ -152,11 +179,17 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		}
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public boolean isDelivered() {
 		return delivered;
 	}
 
+	/*
+	 * return the number of echo messages
+	 */
 	private int getEchoCount(IMessage message) {
 		int count = 0;
 		for (IMessage echoMessage : echoMessages) {
@@ -168,6 +201,7 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 	}
 
 	/**
+	 * return if the message is already echoed
 	 * @param message
 	 */
 	private boolean isAlreadyEchoed(IMessage message) {
@@ -180,10 +214,10 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		return false;
 	}
 
-	/*
-	 * @Override public void setNodeId(NodeId nodeId) { this.nodeId = nodeId; }
-	 */
 
+	/*
+	 * return if the node is a leader
+	 */
 	private boolean isNodeLeader(NodeId id) {
 		for (INode node : NetworkSimulator.getInstance().getNodes()) {
 			if (node.getNodeId().equals(id)) {
@@ -193,6 +227,9 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		return false;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void reset() {
 
@@ -201,11 +238,17 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		echoMessages.clear();
 	}
 
+	/*
+	 * 50% chance of dropping the messgae
+	 */
 	private boolean dropMessage() {
 		Random rand = new Random();
 		return rand.nextInt(100) < 50; // 50% chance to behave as a Byzantine node and not send a message
 	}
 
+	/*
+	 * 50% chance of flooding the messages
+	 */
 	private void floodMessages(IMessage message,long latency) throws Exception {
 		Random rand = new Random();
 		if (rand.nextInt(100) < 50) { // 50% chance to behave as a Byzantine node
@@ -216,6 +259,9 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		}
 	}
 
+	/*
+	 * 50% chance of altering the message content
+	 */
 	private IMessage alterMessage(IMessage message) {
 		Random rand = new Random();
 		if (rand.nextInt(100) < 50) { // 50% chance to behave as a Byzantine node
@@ -225,6 +271,9 @@ public final class AuthenticatedEchoBroadcastStrategy extends AbstractBroadcastS
 		return message;
 	}
 
+	/*
+	 * @inheritDoc 
+	 */
 	@Override
 	public void publishNotDelivered(IMessage message) {
 		BroadcastEvent event = new BroadcastEvent(nodeId, nodeId, MessageType.NOTDELIVERED,
